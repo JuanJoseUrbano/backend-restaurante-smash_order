@@ -1,6 +1,8 @@
 package com.restaurant.SmashOrder.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,9 +23,4 @@ public class Category {
 
     @Column(name = "name", nullable = false, unique = true, length = 100)
     private String name;
-
-    @JsonBackReference
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Product> products = new HashSet<>();
-
 }
