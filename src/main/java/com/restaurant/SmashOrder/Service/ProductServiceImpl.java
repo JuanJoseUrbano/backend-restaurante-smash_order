@@ -59,31 +59,31 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ResponseEntity<String> updateProduct(Long id, Product product) {
-        try {
-            Product existingProduct = productRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        public ResponseEntity<String> updateProduct(Long id, Product product) {
+            try {
+                Product existingProduct = productRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
 
-            validateProduct(product);
+                validateProduct(product);
 
-            if (product.getCategory() != null && product.getCategory().getId() != null) {
-                Category category = categoryRepository.findById(product.getCategory().getId())
-                        .orElseThrow(() -> new RuntimeException("Category not found"));
-                existingProduct.setCategory(category);
+                if (product.getCategory() != null && product.getCategory().getId() != null) {
+                    Category category = categoryRepository.findById(product.getCategory().getId())
+                            .orElseThrow(() -> new RuntimeException("Category not found"));
+                    existingProduct.setCategory(category);
+                }
+
+                existingProduct.setName(product.getName());
+                existingProduct.setDescription(product.getDescription());
+                existingProduct.setPrice(product.getPrice());
+
+                productRepository.save(existingProduct);
+
+                return ResponseEntity.ok("Product updated successfully");
+            } catch (RuntimeException e) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Error updating product: " + e.getMessage());
             }
-
-            existingProduct.setName(product.getName());
-            existingProduct.setDescription(product.getDescription());
-            existingProduct.setPrice(product.getPrice());
-
-            productRepository.save(existingProduct);
-
-            return ResponseEntity.ok("Product updated successfully");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Error updating product: " + e.getMessage());
         }
-    }
 
     @Override
     public ResponseEntity<String> deleteProduct(Long id) {
