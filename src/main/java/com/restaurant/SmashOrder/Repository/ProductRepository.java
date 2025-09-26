@@ -1,5 +1,6 @@
 package com.restaurant.SmashOrder.Repository;
 
+import com.restaurant.SmashOrder.Entity.Category;
 import com.restaurant.SmashOrder.Entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,4 +11,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByCategoryId(Long categoryId);
     List<Product> findProductsByName(String name);
     List<Product> findByPriceBetween(BigDecimal minPrice, BigDecimal maxPrice);
+
 }

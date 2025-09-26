@@ -3,9 +3,10 @@ package com.restaurant.SmashOrder.Controller;
 import com.restaurant.SmashOrder.DTO.LoginDTO;
 import com.restaurant.SmashOrder.DTO.UserDTO;
 import com.restaurant.SmashOrder.Entity.User;
-import com.restaurant.SmashOrder.Service.UserServiceImpl;
+import com.restaurant.SmashOrder.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,9 +18,8 @@ import java.util.Optional;
 public class UserController {
 
     @Autowired
-    private UserServiceImpl userService;
+    private UserService userService;
 
-    // Obtener todos los usuarios
     @GetMapping
     public List<UserDTO> getAllUsers() {
         return userService.getAllUsers();
@@ -44,13 +44,18 @@ public class UserController {
             return ResponseEntity.status(404).body("User not found with email:  " + email);
         }
     }
+    @GetMapping("/search")
+    public List<UserDTO> searchUsers(@RequestParam String name) {
+        return userService.searchUserByName(StringUtils.capitalize(name));
+    }
+
     @PostMapping
     public ResponseEntity<String> registerUser(@RequestBody User user) {
         return userService.registerUser(user);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> loginUser(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<UserDTO> loginUser(@RequestBody LoginDTO loginDTO) {
         return userService.loginUser(loginDTO);
     }
 
