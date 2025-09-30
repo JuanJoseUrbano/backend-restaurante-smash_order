@@ -1,4 +1,4 @@
-package com.restaurant.SmashOrder.Service;
+package com.restaurant.SmashOrder.IService;
 
 import com.restaurant.SmashOrder.Entity.Product;
 import org.springframework.http.ResponseEntity;

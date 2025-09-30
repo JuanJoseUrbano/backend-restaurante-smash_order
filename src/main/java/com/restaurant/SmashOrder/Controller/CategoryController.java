@@ -1,7 +1,7 @@
 package com.restaurant.SmashOrder.Controller;
 
 import com.restaurant.SmashOrder.Entity.Category;
-import com.restaurant.SmashOrder.Service.CategoryService;
+import com.restaurant.SmashOrder.IService.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

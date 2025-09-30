@@ -3,7 +3,7 @@ package com.restaurant.SmashOrder.Controller;
 import com.restaurant.SmashOrder.DTO.LoginDTO;
 import com.restaurant.SmashOrder.DTO.UserDTO;
 import com.restaurant.SmashOrder.Entity.User;
-import com.restaurant.SmashOrder.Service.UserService;
+import com.restaurant.SmashOrder.IService.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;

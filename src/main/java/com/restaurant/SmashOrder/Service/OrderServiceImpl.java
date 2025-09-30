@@ -1,19 +1,22 @@
 package com.restaurant.SmashOrder.Service;
 
+import com.restaurant.SmashOrder.DTO.OrderDTO;
+import com.restaurant.SmashOrder.DTO.UserDTO;
 import com.restaurant.SmashOrder.Entity.Order;
 import com.restaurant.SmashOrder.Entity.OrderDetail;
 import com.restaurant.SmashOrder.Entity.Product;
 import com.restaurant.SmashOrder.Repository.OrderDetailRepository;
 import com.restaurant.SmashOrder.Repository.OrderRepository;
 import com.restaurant.SmashOrder.Repository.ProductRepository;
+import com.restaurant.SmashOrder.IService.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,13 +26,41 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepository productRepository;
 
     @Override
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+    public List<OrderDTO> getAllOrders() {
+        return orderRepository.findAll()
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<Order> getOrderById(Long id) {
-        return orderRepository.findById(id);
+    public Optional<OrderDTO> getOrderById(Long id) {
+        return orderRepository.findById(id)
+                .map(this::mapToDTO);
+    }
+
+    @Override
+    public List<OrderDTO> getOrdersByCustomer(Long customerId) {
+        return orderRepository.findByCustomerId(customerId)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<OrderDTO> getOrdersByStatus(String status) {
+        return orderRepository.findByStatus(status)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<OrderDTO> getOrdersByDate(LocalDateTime date) {
+        return orderRepository.findByDate(date)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -38,7 +69,7 @@ public class OrderServiceImpl implements OrderService {
             return ResponseEntity.badRequest().body("La orden debe contener al menos un producto");
         }
 
-        BigDecimal total = BigDecimal.ZERO;
+        Map<Long, OrderDetail> combinedDetails = new HashMap<>();
 
         for (OrderDetail detail : order.getOrderDetails()) {
             Optional<Product> productOpt = productRepository.findById(detail.getProduct().getId());
@@ -47,16 +78,32 @@ public class OrderServiceImpl implements OrderService {
             }
 
             Product product = productOpt.get();
-            BigDecimal subtotal = product.getPrice().multiply(BigDecimal.valueOf(detail.getQuantity()));
+            Long productId = product.getId();
 
-            detail.setProduct(product);
-            detail.setSubtotal(subtotal);
+            if (combinedDetails.containsKey(productId)) {
+                OrderDetail existingDetail = combinedDetails.get(productId);
+                existingDetail.setQuantity(existingDetail.getQuantity() + detail.getQuantity());
+
+                BigDecimal newSubtotal = product.getPrice().multiply(BigDecimal.valueOf(existingDetail.getQuantity()));
+                existingDetail.setSubtotal(newSubtotal);
+            } else {
+                detail.setProduct(product);
+
+                BigDecimal subtotal = product.getPrice().multiply(BigDecimal.valueOf(detail.getQuantity()));
+                detail.setSubtotal(subtotal);
+
+                combinedDetails.put(productId, detail);
+            }
+        }
+        BigDecimal total = BigDecimal.ZERO;
+        for (OrderDetail detail : combinedDetails.values()) {
             detail.setOrder(order);
-
-            total = total.add(subtotal);
+            total = total.add(detail.getSubtotal());
         }
 
+        order.setOrderDetails(new ArrayList<>(combinedDetails.values()));
         order.setTotal(total);
+
         if (order.getDate() == null) {
             order.setDate(LocalDateTime.now());
         }
@@ -77,31 +124,42 @@ public class OrderServiceImpl implements OrderService {
         Order existingOrder = existingOrderOpt.get();
 
         existingOrder.setCustomer(updatedOrder.getCustomer());
-        existingOrder.setEmployee(updatedOrder.getEmployee());
         existingOrder.setTable(updatedOrder.getTable());
         existingOrder.setStatus(updatedOrder.getStatus());
         existingOrder.setDate(updatedOrder.getDate() != null ? updatedOrder.getDate() : LocalDateTime.now());
 
-        // ✅ FIX: No reemplazar la lista, sino limpiarla y volverla a poblar
         existingOrder.getOrderDetails().clear();
 
-        BigDecimal total = BigDecimal.ZERO;
+        Map<Long, OrderDetail> combinedDetails = new HashMap<>();
+
         for (OrderDetail detail : updatedOrder.getOrderDetails()) {
-            Optional<Product> productOpt = productRepository.findById(detail.getProduct().getId());
-            if (productOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body("Producto no encontrado con ID: " + detail.getProduct().getId());
+            Long productId = detail.getProduct().getId();
+
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
+
+            if (combinedDetails.containsKey(productId)) {
+                OrderDetail existingDetail = combinedDetails.get(productId);
+                existingDetail.setQuantity(existingDetail.getQuantity() + detail.getQuantity());
+
+                BigDecimal newSubtotal = product.getPrice().multiply(BigDecimal.valueOf(existingDetail.getQuantity()));
+                existingDetail.setSubtotal(newSubtotal);
+            } else {
+                OrderDetail newDetail = new OrderDetail();
+                newDetail.setProduct(product);
+                newDetail.setQuantity(detail.getQuantity());
+                newDetail.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(detail.getQuantity())));
+                newDetail.setOrder(existingOrder);
+
+                combinedDetails.put(productId, newDetail);
             }
-
-            Product product = productOpt.get();
-            BigDecimal subtotal = product.getPrice().multiply(BigDecimal.valueOf(detail.getQuantity()));
-
-            detail.setProduct(product);
-            detail.setSubtotal(subtotal);
-            detail.setOrder(existingOrder);
-
-            existingOrder.getOrderDetails().add(detail);
-            total = total.add(subtotal);
         }
+
+        existingOrder.getOrderDetails().addAll(combinedDetails.values());
+
+        BigDecimal total = existingOrder.getOrderDetails().stream()
+                .map(OrderDetail::getSubtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         existingOrder.setTotal(total);
 
@@ -119,18 +177,23 @@ public class OrderServiceImpl implements OrderService {
         return ResponseEntity.ok("Orden eliminada con éxito");
     }
 
-    @Override
-    public List<Order> getOrdersByCustomer(Long customerId) {
-        return orderRepository.findByCustomerId(customerId);
-    }
+    private OrderDTO mapToDTO(Order order) {
+        UserDTO customerDTO = new UserDTO(
+                order.getCustomer().getId(),
+                order.getCustomer().getUserName(),
+                order.getCustomer().getName(),
+                order.getCustomer().getEmail(),
+                order.getCustomer().getRoles()
+        );
 
-    @Override
-    public List<Order> getOrdersByStatus(String status) {
-        return orderRepository.findByStatus(status);
-    }
-
-    @Override
-    public List<Order> getOrdersByDate(LocalDateTime date) {
-        return orderRepository.findByDate(date);
+        return new OrderDTO(
+                order.getId(),
+                customerDTO,
+                order.getTable(),
+                order.getOrderDetails(),
+                order.getTotal(),
+                order.getDate(),
+                order.getStatus()
+        );
     }
 }

@@ -6,6 +6,7 @@ import com.restaurant.SmashOrder.Entity.Product;
 import com.restaurant.SmashOrder.Repository.OrderDetailRepository;
 import com.restaurant.SmashOrder.Repository.OrderRepository;
 import com.restaurant.SmashOrder.Repository.ProductRepository;
+import com.restaurant.SmashOrder.IService.OrderDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;

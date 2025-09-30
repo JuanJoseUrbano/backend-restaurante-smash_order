@@ -1,7 +1,8 @@
 package com.restaurant.SmashOrder.Controller;
 
+import com.restaurant.SmashOrder.DTO.OrderDTO;
 import com.restaurant.SmashOrder.Entity.Order;
-import com.restaurant.SmashOrder.Service.OrderService;
+import com.restaurant.SmashOrder.IService.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,16 +20,32 @@ public class OrderController {
     private OrderService orderService;
 
     @GetMapping
-    public List<Order> getAllOrders() {
+    public List<OrderDTO> getAllOrders() {
         return orderService.getAllOrders();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getOrderById(@PathVariable Long id) {
-        Optional<Order> order = orderService.getOrderById(id);
+        Optional<OrderDTO> order = orderService.getOrderById(id);
         return order.isPresent()
                 ? ResponseEntity.ok(order.get())
                 : ResponseEntity.status(404).body("Order not found with id: " + id);
+    }
+
+    @GetMapping("/customer/{customerId}")
+    public List<OrderDTO> getOrdersByCustomer(@PathVariable Long customerId) {
+        return orderService.getOrdersByCustomer(customerId);
+    }
+
+    @GetMapping("/status/{status}")
+    public List<OrderDTO> getOrdersByStatus(@PathVariable String status) {
+        return orderService.getOrdersByStatus(status);
+    }
+
+    @GetMapping("/date/{date}")
+    public List<OrderDTO> getOrdersByDate(@PathVariable String date) {
+        LocalDateTime parsedDate = LocalDateTime.parse(date);
+        return orderService.getOrdersByDate(parsedDate);
     }
 
     @PostMapping
@@ -44,22 +61,6 @@ public class OrderController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteOrder(@PathVariable Long id) {
         return orderService.deleteOrder(id);
-    }
-
-    @GetMapping("/customer/{customerId}")
-    public List<Order> getOrdersByCustomer(@PathVariable Long customerId) {
-        return orderService.getOrdersByCustomer(customerId);
-    }
-
-    @GetMapping("/status/{status}")
-    public List<Order> getOrdersByStatus(@PathVariable String status) {
-        return orderService.getOrdersByStatus(status);
-    }
-
-    @GetMapping("/date/{date}")
-    public List<Order> getOrdersByDate(@PathVariable String date) {
-        LocalDateTime parsedDate = LocalDateTime.parse(date);
-        return orderService.getOrdersByDate(parsedDate);
     }
 }
 

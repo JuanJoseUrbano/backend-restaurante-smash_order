@@ -2,6 +2,7 @@ package com.restaurant.SmashOrder.Service;
 
 import com.restaurant.SmashOrder.Entity.TableEntity;
 import com.restaurant.SmashOrder.Repository.TableRepository;
+import com.restaurant.SmashOrder.IService.TableService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 @Service
 @RequiredArgsConstructor
-public class TableServiceImpl implements TableService{
+public class TableServiceImpl implements TableService {
     private final TableRepository tableRepository;
     @Override
     public List<TableEntity> getAllTables() {

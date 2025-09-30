@@ -26,10 +26,6 @@ public class Order {
     private User customer;
 
     @ManyToOne
-    @JoinColumn(name = "employee_id")
-    private User employee;
-
-    @ManyToOne
     @JoinColumn(name = "table_id", nullable = false)
     private TableEntity table;
 

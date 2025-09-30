@@ -1,5 +1,6 @@
-package com.restaurant.SmashOrder.Service;
+package com.restaurant.SmashOrder.IService;
 
+import com.restaurant.SmashOrder.DTO.OrderDTO;
 import com.restaurant.SmashOrder.Entity.Order;
 import org.springframework.http.ResponseEntity;
 
@@ -8,18 +9,18 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrderService {
-    List<Order> getAllOrders();
+    List<OrderDTO> getAllOrders();
 
-    Optional<Order> getOrderById(Long id);
+    Optional<OrderDTO> getOrderById(Long id);
+    List<OrderDTO> getOrdersByCustomer(Long customerId);
+
+    List<OrderDTO> getOrdersByStatus(String status);
+
+    List<OrderDTO> getOrdersByDate(LocalDateTime date);
 
     ResponseEntity<String> createOrder(Order order);
 
     ResponseEntity<String> updateOrder(Long id, Order order);
 
     ResponseEntity<String> deleteOrder(Long id);
-    List<Order> getOrdersByCustomer(Long customerId);
-
-    List<Order> getOrdersByStatus(String status);
-
-    List<Order> getOrdersByDate(LocalDateTime date);
 }

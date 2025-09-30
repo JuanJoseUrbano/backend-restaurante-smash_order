@@ -6,6 +6,7 @@ import com.restaurant.SmashOrder.Entity.Role;
 import com.restaurant.SmashOrder.Entity.User;
 import com.restaurant.SmashOrder.Repository.RoleRepository;
 import com.restaurant.SmashOrder.Repository.UserRepository;
+import com.restaurant.SmashOrder.IService.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

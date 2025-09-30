@@ -23,6 +23,9 @@ public class Category {
     @Column(name = "name", nullable = false, unique = true, length = 100)
     private String name;
 
+    @Column(name = "description", nullable = false, length = 100)
+    private String description;
+
     @JsonBackReference
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();

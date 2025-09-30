@@ -1,4 +1,4 @@
-package com.restaurant.SmashOrder.Service;
+package com.restaurant.SmashOrder.IService;
 
 import com.restaurant.SmashOrder.DTO.LoginDTO;
 import com.restaurant.SmashOrder.DTO.UserDTO;

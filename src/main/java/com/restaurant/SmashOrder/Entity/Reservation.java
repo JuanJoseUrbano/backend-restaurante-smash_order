@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
@@ -13,24 +14,23 @@ import java.time.LocalTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Reservation {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    public class Reservation {
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "customer_id", nullable = false)
-    private User customer;
+        @ManyToOne
+        @JoinColumn(name = "customer_id", nullable = false)
+        private User customer;
 
-    @ManyToOne
-    @JoinColumn(name = "table_id", nullable = false)
-    private TableEntity table;
+        @ManyToOne
+        @JoinColumn(name = "table_id", nullable = false)
+        private TableEntity table;
 
-    @Column(name = "reservation_date", nullable = false)
-    private LocalDate reservationDate;
+        @Column(name = "reservation_date", nullable = false)
+        private LocalDateTime date;
 
-    @Column(name = "reservation_time", nullable = false)
-    private LocalTime reservationTime;
+        @Column(name = "status", nullable = false)
+        private Boolean status;
 
-    private String status;
 }
