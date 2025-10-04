@@ -1,53 +1,119 @@
 pipeline {
-    agent any // Ejecutar en cualquier agente disponible
-
+    agent any
+    
+    tools {
+        maven 'Maven 3.9.5'
+        jdk 'JDK 21'
+    }
+    
+    environment {
+        DOCKER_IMAGE = 'smashorder-backend'
+        DOCKER_TAG = "${env.BRANCH_NAME}-${BUILD_NUMBER}"
+    }
+    
     stages {
-        stage('Grant Execute Permission') {
+        stage('Checkout') {
             steps {
-                script {
-                    echo 'Asegurando permisos de ejecución para mvnw (si aplica)...'
-                    // En agentes Linux/Unix concedemos permiso; en Windows usamos no-op
-                    if (isUnix()) {
-                        sh 'chmod +x ./mvnw || true'
-                    } else {
-                        bat 'echo Windows agent: skip chmod'
-                    }
+                echo 'Cloning repository...'
+                checkout scm
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                echo 'Building the application...'
+                sh 'mvn clean compile'
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
-        stage('Compile and Package') {
+        
+        stage('Package') {
             steps {
-                script {
-                    echo 'Compilando y empaquetando la aplicación...'
-                    // Elegir entre sh y bat según el sistema
-                    if (isUnix()) {
-                        sh './mvnw -B package'
-                    } else {
-                        bat '.\\mvnw -B package'
-                    }
-                }
+                echo 'Packaging the application...'
+                sh 'mvn package -DskipTests'
             }
         }
+        
+        stage('Archive Artifacts') {
+            steps {
+                echo 'Archiving artifacts...'
+                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+            }
+        }
+        
         stage('Build Docker Image') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'develop'
+                    branch 'qa'
+                }
+            }
             steps {
+                echo "Building Docker image for branch: ${env.BRANCH_NAME}..."
                 script {
-                    echo 'Construyendo la imagen de Docker...'
-                    // 'smash-order-app' es el nombre de la imagen
-                    // 'env.BUILD_NUMBER' es una variable de Jenkins que nos da un número de compilación único
-                    // Build solo si Docker está disponible en el agente
-                    try {
-                        docker.build("smash-order-app:${env.BUILD_NUMBER}", ".")
-                    } catch (err) {
-                        echo "Docker build skipped or failed: ${err}"
-                        currentBuild.result = 'UNSTABLE'
+                    def branchTag = env.BRANCH_NAME
+                    sh """
+                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -f Dockerfile.app .
+                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${branchTag}-latest
+                    """
+                    
+                    // Tag as 'latest' only for main branch
+                    if (env.BRANCH_NAME == 'main') {
+                        sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'develop'
+                    branch 'qa'
+                }
+            }
+            steps {
+                echo "Deploying application from branch: ${env.BRANCH_NAME}..."
+                script {
+                    // Different deployment logic based on branch
+                    if (env.BRANCH_NAME == 'main') {
+                        echo 'Deploying to PRODUCTION environment...'
+                        // Add production deployment steps here
+                    } else if (env.BRANCH_NAME == 'qa') {
+                        echo 'Deploying to QA environment...'
+                        // Add QA deployment steps here
+                    } else if (env.BRANCH_NAME == 'develop') {
+                        echo 'Deploying to DEVELOPMENT environment...'
+                        // Add development deployment steps here
                     }
                 }
             }
         }
     }
+    
     post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
         always {
-            echo 'Pipeline finalizado.'
+            echo 'Cleaning up workspace...'
+            cleanWs()
         }
     }
 }
