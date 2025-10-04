@@ -57,7 +57,7 @@ pipeline {
                 anyOf {
                     branch 'main'
                     branch 'develop'
-                    branch 'qa'
+                    branch 'quality'
                 }
             }
             steps {
@@ -82,7 +82,7 @@ pipeline {
                 anyOf {
                     branch 'main'
                     branch 'develop'
-                    branch 'qa'
+                    branch 'quality'
                 }
             }
             steps {
@@ -92,8 +92,8 @@ pipeline {
                     if (env.BRANCH_NAME == 'main') {
                         echo 'Deploying to PRODUCTION environment...'
                         // Add production deployment steps here
-                    } else if (env.BRANCH_NAME == 'qa') {
-                        echo 'Deploying to QA environment...'
+                    } else if (env.BRANCH_NAME == 'quality') {
+                        echo 'Deploying to QA/QUALITY environment...'
                         // Add QA deployment steps here
                     } else if (env.BRANCH_NAME == 'develop') {
                         echo 'Deploying to DEVELOPMENT environment...'
