@@ -63,9 +63,14 @@ pipeline {
                     
                     if (isUnix()) {
                         def jdkPath = tool 'JDK 21'
-                        sh "env JAVA_HOME='${jdkPath}' ./mvnw clean package -DskipTests"
+                        withEnv(["JAVA_HOME=${jdkPath}"]) {
+                            sh "./mvnw clean package -DskipTests"
+                        }
                     } else {
-                        bat '.\\mvnw clean package -DskipTests'
+                        def jdkPath = tool 'JDK 21'
+                        withEnv(["JAVA_HOME=${jdkPath}"]) {
+                            bat '.\\mvnw clean package -DskipTests'
+                        }
                     }
                 }
             }
@@ -77,9 +82,14 @@ pipeline {
                     echo 'Ejecutando pruebas unitarias...'
                     if (isUnix()) {
                         def jdkPath = tool 'JDK 21'
-                        sh "env JAVA_HOME='${jdkPath}' ./mvnw test"
+                        withEnv(["JAVA_HOME=${jdkPath}"]) {
+                            sh "./mvnw test"
+                        }
                     } else {
-                        bat '.\\mvnw test'
+                        def jdkPath = tool 'JDK 21'
+                        withEnv(["JAVA_HOME=${jdkPath}"]) {
+                            bat '.\\mvnw test'
+                        }
                     }
                 }
             }
