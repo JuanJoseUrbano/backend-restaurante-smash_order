@@ -20,6 +20,22 @@ pipeline {
     // Ejecutar solo en las ramas especificadas
     // Esta sección valida la rama antes de ejecutar cualquier stage
     stages {
+        stage('Debug Java') {
+            steps {
+                script {
+                    echo "DEBUG: JAVA_HOME (from env): ${env.JAVA_HOME}"
+                    if (isUnix()) {
+                        sh 'echo "which java:" && which java || true'
+                        sh 'echo "java -version:" && java -version || true'
+                        sh 'echo "mvnw -v:" && ./mvnw -v || true'
+                    } else {
+                        bat 'echo which java: & where java || echo not found'
+                        bat 'echo java -version & java -version'
+                        bat 'echo mvnw -v & .\\mvnw -v'
+                    }
+                }
+            }
+        }
         stage('Validate Branch') {
             steps {
                 script {
