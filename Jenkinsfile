@@ -5,6 +5,10 @@ pipeline {
         jdk 'JDK 21'
     }
 
+    environment {
+        JAVA_HOME = tool 'JDK 21'
+    }
+
     // Configurar para ejecutar solo en ramas específicas
     options {
         // Mantener solo los últimos 10 builds
@@ -62,15 +66,9 @@ pipeline {
                     echo "Compilando y empaquetando la aplicación para la rama: ${currentBranch}..."
                     
                     if (isUnix()) {
-                        def jdkPath = tool 'JDK 21'
-                        withEnv(["JAVA_HOME=${jdkPath}"]) {
-                            sh "./mvnw clean package -DskipTests"
-                        }
+                        sh "./mvnw clean package -DskipTests"
                     } else {
-                        def jdkPath = tool 'JDK 21'
-                        withEnv(["JAVA_HOME=${jdkPath}"]) {
-                            bat '.\\mvnw clean package -DskipTests'
-                        }
+                        bat '.\\mvnw clean package -DskipTests'
                     }
                 }
             }
@@ -81,15 +79,9 @@ pipeline {
                 script {
                     echo 'Ejecutando pruebas unitarias...'
                     if (isUnix()) {
-                        def jdkPath = tool 'JDK 21'
-                        withEnv(["JAVA_HOME=${jdkPath}"]) {
-                            sh "./mvnw test"
-                        }
+                        sh "./mvnw test"
                     } else {
-                        def jdkPath = tool 'JDK 21'
-                        withEnv(["JAVA_HOME=${jdkPath}"]) {
-                            bat '.\\mvnw test'
-                        }
+                        bat '.\\mvnw test'
                     }
                 }
             }
