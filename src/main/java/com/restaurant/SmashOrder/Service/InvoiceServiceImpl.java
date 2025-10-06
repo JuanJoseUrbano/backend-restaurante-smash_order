@@ -60,7 +60,7 @@
         }
         @Override
         public List<InvoiceDTO> getAllInvoices() {
-            return invoiceRepository.findAll()
+            return invoiceRepository.findAllByOrderByPaymentDateDesc()
                     .stream()
                     .map(this::mapToInvoiceDTO)
                     .toList();
@@ -125,41 +125,92 @@
                 Order order = orderRepository.findById(invoice.getOrder().getId()).orElseThrow();
 
                 invoice.setTotal(order.getTotal());
-                invoice.setPaymentDate(LocalDateTime.now());
-                invoice.setStatus(PaymentStatus.PAID);
+
+                if (invoice.getStatus() == null) {
+                    invoice.setStatus(PaymentStatus.PENDING);
+                }
+
+                if (invoice.getStatus() == PaymentStatus.PAID) {
+                    invoice.setPaymentDate(LocalDateTime.now());
+                } else {
+                    invoice.setPaymentDate(null);
+                }
+                invoice.setReceiptNumber("RCPT-" + System.currentTimeMillis());
                 invoice.setCreatedAt(LocalDateTime.now());
 
                 invoiceRepository.save(invoice);
 
-                return ResponseEntity.ok("Invoice created successfully");
+                return ResponseEntity.status(HttpStatus.CREATED)
+                        .body("Invoice created successfully");
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Error creating invoice: " + e.getMessage());
             }
         }
 
-
         @Override
-        public ResponseEntity<String> updateInvoice(Long id, Invoice invoice) {
-            return invoiceRepository.findById(id).map(existingInvoice -> {
+        public ResponseEntity<String> updateInvoice(Long id, Invoice updatedInvoice) {
+            try {
+                Invoice existingInvoice = invoiceRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("Invoice not found"));
 
-                if (invoice.getPaymentMethod() != null &&
-                        !paymentMethodRepository.existsById(invoice.getPaymentMethod().getId())) {
+                if (updatedInvoice.getOrder() == null ||
+                        !orderRepository.existsById(updatedInvoice.getOrder().getId())) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body("Invalid order: Order not found.");
+                }
+
+                if (updatedInvoice.getPaymentMethod() == null ||
+                        !paymentMethodRepository.existsById(updatedInvoice.getPaymentMethod().getId())) {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                             .body("Invalid payment method.");
                 }
 
-                existingInvoice.setOrder(invoice.getOrder() != null ? invoice.getOrder() : existingInvoice.getOrder());
-                existingInvoice.setPaymentMethod(invoice.getPaymentMethod() != null ? invoice.getPaymentMethod() : existingInvoice.getPaymentMethod());
-                existingInvoice.setTotal(invoice.getTotal() != null ? invoice.getTotal() : existingInvoice.getTotal());
-                existingInvoice.setStatus(invoice.getStatus() != null ? invoice.getStatus() : existingInvoice.getStatus());
-                existingInvoice.setReceiptNumber(invoice.getReceiptNumber() != null ? invoice.getReceiptNumber() : existingInvoice.getReceiptNumber());
-                existingInvoice.setPaymentDate(invoice.getPaymentDate() != null ? invoice.getPaymentDate() : existingInvoice.getPaymentDate());
+                Order order = orderRepository.findById(updatedInvoice.getOrder().getId())
+                        .orElseThrow(() -> new RuntimeException("Order not found"));
+                PaymentMethod paymentMethod = paymentMethodRepository
+                        .findById(updatedInvoice.getPaymentMethod().getId())
+                        .orElseThrow(() -> new RuntimeException("Payment method not found"));
+
+                existingInvoice.setOrder(order);
+                existingInvoice.setPaymentMethod(paymentMethod);
+                existingInvoice.setTotal(order.getTotal());
+
+                PaymentStatus status = updatedInvoice.getStatus() != null
+                        ? updatedInvoice.getStatus()
+                        : existingInvoice.getStatus();
+                existingInvoice.setStatus(status);
+
+                if (status == PaymentStatus.PAID) {
+                    existingInvoice.setPaymentDate(LocalDateTime.now());
+                } else {
+                    if (existingInvoice.getPaymentDate() == null) {
+                        existingInvoice.setPaymentDate(existingInvoice.getCreatedAt() != null
+                                ? existingInvoice.getCreatedAt()
+                                : LocalDateTime.now());
+                    }
+                }
+
+                if (updatedInvoice.getReceiptNumber() != null &&
+                        !updatedInvoice.getReceiptNumber().isEmpty()) {
+                    existingInvoice.setReceiptNumber(updatedInvoice.getReceiptNumber());
+                } else if (existingInvoice.getReceiptNumber() == null) {
+                    existingInvoice.setReceiptNumber("RCPT-" + System.currentTimeMillis());
+                }
+
+                if (existingInvoice.getCreatedAt() == null) {
+                    existingInvoice.setCreatedAt(LocalDateTime.now());
+                }
 
                 invoiceRepository.save(existingInvoice);
+
                 return ResponseEntity.ok("Invoice updated successfully");
-            }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Invoice with ID " + id + " not found"));
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Error updating invoice: " + e.getMessage());
+            }
         }
 
         @Override
@@ -177,7 +228,4 @@
             }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Invoice with ID " + id + " not found"));
         }
-
-
-
     }

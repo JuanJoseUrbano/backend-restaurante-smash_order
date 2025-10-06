@@ -80,6 +80,11 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryRepository.existsById(id);
     }
 
+    @Override
+    public Long countAllCategories() {
+        return categoryRepository.countBy();
+    }
+
     private void validateCategory(Category category) {
         if (category.getName() == null || category.getName().trim().isEmpty()) {
             throw new RuntimeException("Category name is required");

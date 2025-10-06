@@ -17,4 +17,5 @@ public interface ProductService {
     ResponseEntity<String> deleteProduct(Long id);
     boolean existsById(Long id);
     List<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice);
+    Long countAllProducts();
 }

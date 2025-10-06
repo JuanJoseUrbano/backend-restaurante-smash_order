@@ -16,4 +16,5 @@ public interface UserRepository extends JpaRepository<User,Long> {
     List<User> searchByName(@Param("name") String name);
 
     Optional<User> findByUserNameAndPassword(String userName, String password);
+    Long countBy();
 }

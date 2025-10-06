@@ -17,4 +17,5 @@ public interface UserService {
     List<UserDTO> searchUserByName(String name);
     ResponseEntity<String> updateUser(Long id, User user);
     ResponseEntity<String> deleteUser(Long id);
+    Long countAllUsers();
 }

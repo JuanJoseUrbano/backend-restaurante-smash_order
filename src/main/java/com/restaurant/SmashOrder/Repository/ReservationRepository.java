@@ -20,11 +20,6 @@ public interface ReservationRepository extends JpaRepository<Reservation,Long> {
     List<Reservation> findByTableAndDateExcludingId(@Param("tableId") Long tableId,
                                                     @Param("date") LocalDateTime date,
                                                     @Param("reservationId") Long reservationId);
-
-
-
-
-
-
-
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.customer.id = :customerId AND r.status = true")
+    Long countActiveReservationsByCustomer(@Param("customerId") Long customerId);
 }

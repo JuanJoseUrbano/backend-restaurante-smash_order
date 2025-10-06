@@ -23,6 +23,10 @@ public class OrderController {
     public List<OrderDTO> getAllOrders() {
         return orderService.getAllOrders();
     }
+    @GetMapping("/without-invoice")
+    public List<OrderDTO> getOrdersWithoutInvoice() {
+        return orderService.getOrdersWithoutInvoice();
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getOrderById(@PathVariable Long id) {
@@ -61,6 +65,17 @@ public class OrderController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteOrder(@PathVariable Long id) {
         return orderService.deleteOrder(id);
+    }
+    @GetMapping("/count")
+    public ResponseEntity<Long> countAllOrders() {
+        Long totalOrders = orderService.countAllOrders();
+        return ResponseEntity.ok(totalOrders);
+    }
+
+    @GetMapping("/customer/{customerId}/count")
+    public ResponseEntity<Long> countOrdersByCustomer(@PathVariable Long customerId) {
+        Long totalOrdersByCustomer = orderService.countOrdersByCustomer(customerId);
+        return ResponseEntity.ok(totalOrdersByCustomer);
     }
 }
 

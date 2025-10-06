@@ -14,5 +14,5 @@ public interface CategoryService {
         ResponseEntity<String> updateCategory(Long id, Category category);
         ResponseEntity<String> deleteCategory(Long id);
         boolean existsById(Long id);
-
+        Long countAllCategories();
 }

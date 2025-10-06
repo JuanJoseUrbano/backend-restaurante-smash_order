@@ -31,8 +31,7 @@ public class Invoice {
     @NotNull(message = "El pedido es obligatorio")
     private Order order;
 
-    @Column(name = "payment_date", nullable = false)
-    @NotNull(message = "La fecha de pago es obligatoria")
+    @Column(name = "payment_date")
     private LocalDateTime paymentDate;
 
     @Column(name = "receipt_number", unique = true, length = 50)

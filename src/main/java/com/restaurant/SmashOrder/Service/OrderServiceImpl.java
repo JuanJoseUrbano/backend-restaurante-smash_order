@@ -2,14 +2,12 @@ package com.restaurant.SmashOrder.Service;
 
 import com.restaurant.SmashOrder.DTO.OrderDTO;
 import com.restaurant.SmashOrder.DTO.UserDTO;
-import com.restaurant.SmashOrder.Entity.Order;
-import com.restaurant.SmashOrder.Entity.OrderDetail;
-import com.restaurant.SmashOrder.Entity.Product;
-import com.restaurant.SmashOrder.Repository.OrderDetailRepository;
-import com.restaurant.SmashOrder.Repository.OrderRepository;
-import com.restaurant.SmashOrder.Repository.ProductRepository;
+import com.restaurant.SmashOrder.Entity.*;
+import com.restaurant.SmashOrder.Repository.*;
 import com.restaurant.SmashOrder.IService.OrderService;
+import com.restaurant.SmashOrder.Utils.PaymentStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -24,10 +22,21 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final InvoiceRepository invoiceRepository;
 
     @Override
     public List<OrderDTO> getAllOrders() {
-        return orderRepository.findAll()
+        return orderRepository.findAllByOrderByDateDesc()
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    public List<OrderDTO> getOrdersWithoutInvoice() {
+        return orderRepository.findOrdersWithoutInvoice()
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -65,108 +74,163 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public ResponseEntity<String> createOrder(Order order) {
-        if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
-            return ResponseEntity.badRequest().body("La orden debe contener al menos un producto");
-        }
-
-        Map<Long, OrderDetail> combinedDetails = new HashMap<>();
-
-        for (OrderDetail detail : order.getOrderDetails()) {
-            Optional<Product> productOpt = productRepository.findById(detail.getProduct().getId());
-            if (productOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body("Producto no encontrado con ID: " + detail.getProduct().getId());
+        try {
+            if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+                return ResponseEntity.badRequest().body("La orden debe contener al menos un producto");
             }
 
-            Product product = productOpt.get();
-            Long productId = product.getId();
+            Map<Long, OrderDetail> combinedDetails = new HashMap<>();
 
-            if (combinedDetails.containsKey(productId)) {
-                OrderDetail existingDetail = combinedDetails.get(productId);
-                existingDetail.setQuantity(existingDetail.getQuantity() + detail.getQuantity());
+            for (OrderDetail detail : order.getOrderDetails()) {
+                Optional<Product> productOpt = productRepository.findById(detail.getProduct().getId());
+                if (productOpt.isEmpty()) {
+                    return ResponseEntity.badRequest()
+                            .body("Producto no encontrado con ID: " + detail.getProduct().getId());
+                }
 
-                BigDecimal newSubtotal = product.getPrice().multiply(BigDecimal.valueOf(existingDetail.getQuantity()));
-                existingDetail.setSubtotal(newSubtotal);
-            } else {
-                detail.setProduct(product);
+                Product product = productOpt.get();
+                Long productId = product.getId();
 
-                BigDecimal subtotal = product.getPrice().multiply(BigDecimal.valueOf(detail.getQuantity()));
-                detail.setSubtotal(subtotal);
-
-                combinedDetails.put(productId, detail);
+                if (combinedDetails.containsKey(productId)) {
+                    OrderDetail existingDetail = combinedDetails.get(productId);
+                    existingDetail.setQuantity(existingDetail.getQuantity() + detail.getQuantity());
+                    existingDetail.setSubtotal(product.getPrice()
+                            .multiply(BigDecimal.valueOf(existingDetail.getQuantity())));
+                } else {
+                    detail.setProduct(product);
+                    detail.setSubtotal(product.getPrice()
+                            .multiply(BigDecimal.valueOf(detail.getQuantity())));
+                    combinedDetails.put(productId, detail);
+                }
             }
-        }
-        BigDecimal total = BigDecimal.ZERO;
-        for (OrderDetail detail : combinedDetails.values()) {
-            detail.setOrder(order);
-            total = total.add(detail.getSubtotal());
-        }
 
-        order.setOrderDetails(new ArrayList<>(combinedDetails.values()));
-        order.setTotal(total);
+            BigDecimal total = BigDecimal.ZERO;
+            for (OrderDetail detail : combinedDetails.values()) {
+                detail.setOrder(order);
+                total = total.add(detail.getSubtotal());
+            }
 
-        if (order.getDate() == null) {
+            order.setOrderDetails(new ArrayList<>(combinedDetails.values()));
+            order.setTotal(total);
             order.setDate(LocalDateTime.now());
+
+            if (order.getInvoice() == null || order.getInvoice().getPaymentMethod() == null) {
+                return ResponseEntity.badRequest().body("Debe especificar un método de pago en la factura.");
+            }
+
+            Long paymentMethodId = order.getInvoice().getPaymentMethod().getId();
+            Optional<PaymentMethod> paymentMethodOpt = paymentMethodRepository.findById(paymentMethodId);
+            if (paymentMethodOpt.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body("Método de pago no encontrado con ID: " + paymentMethodId);
+            }
+
+            PaymentMethod paymentMethod = paymentMethodOpt.get();
+
+            Invoice invoice = new Invoice();
+            invoice.setPaymentMethod(paymentMethod);
+
+            if (order.getInvoice().getStatus() == PaymentStatus.PAID) {
+                invoice.setPaymentDate(LocalDateTime.now());
+            } else {
+                invoice.setPaymentDate(null);
+            }
+            invoice.setStatus(order.getInvoice().getStatus() != null
+                            ? order.getInvoice().getStatus()
+                            : PaymentStatus.PENDING
+            );
+            invoice.setTotal(total);
+            invoice.setReceiptNumber("RCPT-" + System.currentTimeMillis());
+            invoice.setCreatedAt(LocalDateTime.now());
+
+            invoice.setOrder(order);
+            order.setInvoice(invoice);
+
+            Order savedOrder = orderRepository.save(order);
+
+            return ResponseEntity.ok(
+                    "Orden creada con ID: " + savedOrder.getId() +
+                            ", total: $" + total +
+                            " y factura generada con ID: " + savedOrder.getInvoice().getId()
+            );
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al crear la orden: " + e.getMessage());
         }
-
-        Order savedOrder = orderRepository.save(order);
-        orderDetailRepository.saveAll(order.getOrderDetails());
-
-        return ResponseEntity.ok("Orden creada con ID: " + savedOrder.getId() + " y total: $" + total);
     }
 
     @Override
     public ResponseEntity<String> updateOrder(Long id, Order updatedOrder) {
-        Optional<Order> existingOrderOpt = orderRepository.findById(id);
-        if (existingOrderOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        Order existingOrder = existingOrderOpt.get();
-
-        existingOrder.setCustomer(updatedOrder.getCustomer());
-        existingOrder.setTable(updatedOrder.getTable());
-        existingOrder.setStatus(updatedOrder.getStatus());
-        existingOrder.setDate(updatedOrder.getDate() != null ? updatedOrder.getDate() : LocalDateTime.now());
-
-        existingOrder.getOrderDetails().clear();
-
-        Map<Long, OrderDetail> combinedDetails = new HashMap<>();
-
-        for (OrderDetail detail : updatedOrder.getOrderDetails()) {
-            Long productId = detail.getProduct().getId();
-
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
-
-            if (combinedDetails.containsKey(productId)) {
-                OrderDetail existingDetail = combinedDetails.get(productId);
-                existingDetail.setQuantity(existingDetail.getQuantity() + detail.getQuantity());
-
-                BigDecimal newSubtotal = product.getPrice().multiply(BigDecimal.valueOf(existingDetail.getQuantity()));
-                existingDetail.setSubtotal(newSubtotal);
-            } else {
-                OrderDetail newDetail = new OrderDetail();
-                newDetail.setProduct(product);
-                newDetail.setQuantity(detail.getQuantity());
-                newDetail.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(detail.getQuantity())));
-                newDetail.setOrder(existingOrder);
-
-                combinedDetails.put(productId, newDetail);
+        try {
+            Optional<Order> existingOrderOpt = orderRepository.findById(id);
+            if (existingOrderOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("No se encontró la orden con ID: " + id);
             }
+
+            Order existingOrder = existingOrderOpt.get();
+
+            existingOrder.setCustomer(updatedOrder.getCustomer());
+            existingOrder.setTable(updatedOrder.getTable());
+            existingOrder.setStatus(updatedOrder.getStatus());
+            existingOrder.setDate(LocalDateTime.now());
+
+            existingOrder.getOrderDetails().clear();
+
+            Map<Long, OrderDetail> combinedDetails = new HashMap<>();
+
+            for (OrderDetail detail : updatedOrder.getOrderDetails()) {
+                Long productId = detail.getProduct().getId();
+
+                Product product = productRepository.findById(productId)
+                        .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
+
+                if (combinedDetails.containsKey(productId)) {
+                    OrderDetail existingDetail = combinedDetails.get(productId);
+                    existingDetail.setQuantity(existingDetail.getQuantity() + detail.getQuantity());
+                    existingDetail.setSubtotal(product.getPrice()
+                            .multiply(BigDecimal.valueOf(existingDetail.getQuantity())));
+                } else {
+                    OrderDetail newDetail = new OrderDetail();
+                    newDetail.setProduct(product);
+                    newDetail.setQuantity(detail.getQuantity());
+                    newDetail.setSubtotal(product.getPrice()
+                            .multiply(BigDecimal.valueOf(detail.getQuantity())));
+                    newDetail.setOrder(existingOrder);
+                    combinedDetails.put(productId, newDetail);
+                }
+            }
+
+            existingOrder.getOrderDetails().addAll(combinedDetails.values());
+
+            BigDecimal total = existingOrder.getOrderDetails().stream()
+                    .map(OrderDetail::getSubtotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            existingOrder.setTotal(total);
+
+            Invoice existingInvoice = existingOrder.getInvoice();
+            if (existingInvoice != null) {
+                existingInvoice.setTotal(total);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("La orden no tiene una factura asociada para actualizar.");
+            }
+
+            orderRepository.save(existingOrder);
+
+            return ResponseEntity.ok("Orden actualizada correctamente con ID: " + existingOrder.getId()
+                    + ", nuevo total: $" + total);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al actualizar la orden: " + e.getMessage());
         }
-
-        existingOrder.getOrderDetails().addAll(combinedDetails.values());
-
-        BigDecimal total = existingOrder.getOrderDetails().stream()
-                .map(OrderDetail::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        existingOrder.setTotal(total);
-
-        orderRepository.save(existingOrder);
-
-        return ResponseEntity.ok("Orden actualizada con ID: " + existingOrder.getId() + " y nuevo total: $" + total);
     }
+
 
     @Override
     public ResponseEntity<String> deleteOrder(Long id) {
@@ -175,6 +239,16 @@ public class OrderServiceImpl implements OrderService {
         }
         orderRepository.deleteById(id);
         return ResponseEntity.ok("Orden eliminada con éxito");
+    }
+
+    @Override
+    public Long countAllOrders() {
+        return orderRepository.countAllOrders();
+    }
+
+    @Override
+    public Long countOrdersByCustomer(Long customerId) {
+        return orderRepository.countOrdersByCustomer(customerId);
     }
 
     private OrderDTO mapToDTO(Order order) {
