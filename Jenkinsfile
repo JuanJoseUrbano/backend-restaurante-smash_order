@@ -6,7 +6,8 @@ pipeline {
     }
 
     environment {
-        JAVA_HOME = tool 'JDK 21'
+        JAVA_HOME = '/opt/java/openjdk'
+        PATH = "$JAVA_HOME/bin:$PATH"
     }
 
     // Configurar para ejecutar solo en ramas específicas
