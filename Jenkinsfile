@@ -1,12 +1,10 @@
 pipeline {
-    agent any
-
-    tools {
-        jdk 'JDK 21'
-    }
-
-    environment {
-        JAVA_HOME = tool 'JDK 21'
+    agent {
+        docker {
+            image 'maven:3.10.1-eclipse-temurin-21'
+            // Montar el socket Docker para permitir docker.build() si el host lo permite
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
     }
 
     // Configurar para ejecutar solo en ramas específicas
@@ -82,7 +80,26 @@ pipeline {
                     echo "Compilando y empaquetando la aplicación para la rama: ${currentBranch}..."
                     
                     if (isUnix()) {
-                        sh "./mvnw clean package -DskipTests"
+                                                sh '''
+                                                        echo "Resolviendo JAVA_HOME dinámicamente (si es necesario)..."
+                                                        # Si JAVA_HOME ya está definido por tool() lo mantenemos, si no lo derivamos desde `which java`
+                                                        if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
+                                                            if which java >/dev/null 2>&1; then
+                                                                JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+                                                                echo "Detected JAVA_HOME from which java: $JAVA_HOME"
+                                                            else
+                                                                echo "No java found in PATH and JAVA_HOME is not set"
+                                                            fi
+                                                        else
+                                                            echo "JAVA_HOME already set: $JAVA_HOME"
+                                                        fi
+                                                        echo "Listing JAVA_HOME contents for debug:"
+                                                        ls -la "$JAVA_HOME" || true
+                                                        ls -la "$JAVA_HOME/bin" || true
+                                                        export PATH="$JAVA_HOME/bin:$PATH"
+                                                        echo "Using java from: $(which java) -> $(java -version 2>&1 | head -n 1)"
+                                                        ./mvnw clean package -DskipTests
+                                                '''
                     } else {
                         bat '.\\mvnw clean package -DskipTests'
                     }
