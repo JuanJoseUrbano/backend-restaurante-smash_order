@@ -62,7 +62,8 @@ pipeline {
                     echo "Compilando y empaquetando la aplicación para la rama: ${currentBranch}..."
                     
                     if (isUnix()) {
-                        sh './mvnw clean package -DskipTests'
+                        def jdkPath = tool 'JDK 21'
+                        sh "env JAVA_HOME='${jdkPath}' ./mvnw clean package -DskipTests"
                     } else {
                         bat '.\\mvnw clean package -DskipTests'
                     }
@@ -75,7 +76,8 @@ pipeline {
                 script {
                     echo 'Ejecutando pruebas unitarias...'
                     if (isUnix()) {
-                        sh './mvnw test'
+                        def jdkPath = tool 'JDK 21'
+                        sh "env JAVA_HOME='${jdkPath}' ./mvnw test"
                     } else {
                         bat '.\\mvnw test'
                     }
