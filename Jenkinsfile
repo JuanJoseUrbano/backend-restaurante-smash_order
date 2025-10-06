@@ -1,10 +1,12 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.10.1-eclipse-temurin-21'
-            // Montar el socket Docker para permitir docker.build() si el host lo permite
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
+    agent any
+
+    tools {
+        jdk 'JDK 21'
+    }
+
+    environment {
+        JAVA_HOME = tool 'JDK 21'
     }
 
     // Configurar para ejecutar solo en ramas específicas
@@ -18,22 +20,6 @@ pipeline {
     // Ejecutar solo en las ramas especificadas
     // Esta sección valida la rama antes de ejecutar cualquier stage
     stages {
-        stage('Debug Java') {
-            steps {
-                script {
-                    echo "DEBUG: JAVA_HOME (from env): ${env.JAVA_HOME}"
-                    if (isUnix()) {
-                        sh 'echo "which java:" && which java || true'
-                        sh 'echo "java -version:" && java -version || true'
-                        sh 'echo "mvnw -v:" && ./mvnw -v || true'
-                    } else {
-                        bat 'echo which java: & where java || echo not found'
-                        bat 'echo java -version & java -version'
-                        bat 'echo mvnw -v & .\\mvnw -v'
-                    }
-                }
-            }
-        }
         stage('Validate Branch') {
             steps {
                 script {
@@ -80,26 +66,7 @@ pipeline {
                     echo "Compilando y empaquetando la aplicación para la rama: ${currentBranch}..."
                     
                     if (isUnix()) {
-                                                sh '''
-                                                        echo "Resolviendo JAVA_HOME dinámicamente (si es necesario)..."
-                                                        # Si JAVA_HOME ya está definido por tool() lo mantenemos, si no lo derivamos desde `which java`
-                                                        if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
-                                                            if which java >/dev/null 2>&1; then
-                                                                JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
-                                                                echo "Detected JAVA_HOME from which java: $JAVA_HOME"
-                                                            else
-                                                                echo "No java found in PATH and JAVA_HOME is not set"
-                                                            fi
-                                                        else
-                                                            echo "JAVA_HOME already set: $JAVA_HOME"
-                                                        fi
-                                                        echo "Listing JAVA_HOME contents for debug:"
-                                                        ls -la "$JAVA_HOME" || true
-                                                        ls -la "$JAVA_HOME/bin" || true
-                                                        export PATH="$JAVA_HOME/bin:$PATH"
-                                                        echo "Using java from: $(which java) -> $(java -version 2>&1 | head -n 1)"
-                                                        ./mvnw clean package -DskipTests
-                                                '''
+                        sh "./mvnw clean package -DskipTests"
                     } else {
                         bat '.\\mvnw clean package -DskipTests'
                     }
