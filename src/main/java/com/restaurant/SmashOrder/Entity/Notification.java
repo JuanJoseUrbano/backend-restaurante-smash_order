@@ -1,5 +1,6 @@
 package com.restaurant.SmashOrder.Entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,9 +15,6 @@ public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne
-    @JoinColumn(name = "customer_id", nullable = false)
-    private User customer;
 
     @ManyToOne
     @JoinColumn(name = "order_id")
