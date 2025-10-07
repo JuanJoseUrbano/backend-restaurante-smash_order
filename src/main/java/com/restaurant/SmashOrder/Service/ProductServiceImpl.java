@@ -4,6 +4,7 @@ import com.restaurant.SmashOrder.Entity.Category;
 import com.restaurant.SmashOrder.Entity.Product;
 import com.restaurant.SmashOrder.Repository.CategoryRepository;
 import com.restaurant.SmashOrder.Repository.ProductRepository;
+import com.restaurant.SmashOrder.IService.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -103,6 +104,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
         return productRepository.findByPriceBetween(minPrice, maxPrice);
+    }
+
+    @Override
+    public Long countAllProducts() {
+        return productRepository.countAllProducts();
     }
 
     private void validateProduct(Product product) {

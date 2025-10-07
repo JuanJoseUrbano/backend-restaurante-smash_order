@@ -9,5 +9,5 @@ public class SmashOrderApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(SmashOrderApplication.class, args);
 	}
-
+	
 }

@@ -2,6 +2,7 @@ package com.restaurant.SmashOrder.Service;
 
 import com.restaurant.SmashOrder.Entity.Role;
 import com.restaurant.SmashOrder.Repository.RoleRepository;
+import com.restaurant.SmashOrder.IService.RoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +13,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class RoleServiceImpl implements RoleService{
+public class RoleServiceImpl implements RoleService {
     private final RoleRepository roleRepository;
 
     @Override

@@ -1,4 +1,4 @@
-package com.restaurant.SmashOrder.Service;
+package com.restaurant.SmashOrder.IService;
 
 import com.restaurant.SmashOrder.Entity.Category;
 import org.springframework.http.ResponseEntity;
@@ -14,5 +14,5 @@ public interface CategoryService {
         ResponseEntity<String> updateCategory(Long id, Category category);
         ResponseEntity<String> deleteCategory(Long id);
         boolean existsById(Long id);
-
+        Long countAllCategories();
 }

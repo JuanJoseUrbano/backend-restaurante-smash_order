@@ -2,6 +2,7 @@ package com.restaurant.SmashOrder.Service;
 
 import com.restaurant.SmashOrder.Entity.Category;
 import com.restaurant.SmashOrder.Repository.CategoryRepository;
+import com.restaurant.SmashOrder.IService.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -54,7 +55,7 @@ public class CategoryServiceImpl implements CategoryService {
             validateCategory(category);
 
             existingCategory.setName(category.getName());
-
+            existingCategory.setDescription(category.getDescription());
             categoryRepository.save(existingCategory);
 
             return ResponseEntity.ok("Category updated successfully");
@@ -77,6 +78,11 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public boolean existsById(Long id) {
         return categoryRepository.existsById(id);
+    }
+
+    @Override
+    public Long countAllCategories() {
+        return categoryRepository.countBy();
     }
 
     private void validateCategory(Category category) {

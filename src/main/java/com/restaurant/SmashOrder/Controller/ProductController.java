@@ -1,7 +1,7 @@
 package com.restaurant.SmashOrder.Controller;
 
 import com.restaurant.SmashOrder.Entity.Product;
-import com.restaurant.SmashOrder.Service.ProductService;
+import com.restaurant.SmashOrder.IService.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -62,5 +62,9 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteProduct(@PathVariable Long id) {
         return productService.deleteProduct(id);
+    }
+    @GetMapping("/count")
+    public ResponseEntity<Long> countAllProducts() {
+        return ResponseEntity.ok( productService.countAllProducts());
     }
 }

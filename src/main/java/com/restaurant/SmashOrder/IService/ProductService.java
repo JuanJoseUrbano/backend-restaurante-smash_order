@@ -1,4 +1,4 @@
-package com.restaurant.SmashOrder.Service;
+package com.restaurant.SmashOrder.IService;
 
 import com.restaurant.SmashOrder.Entity.Product;
 import org.springframework.http.ResponseEntity;
@@ -17,4 +17,5 @@ public interface ProductService {
     ResponseEntity<String> deleteProduct(Long id);
     boolean existsById(Long id);
     List<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice);
+    Long countAllProducts();
 }
