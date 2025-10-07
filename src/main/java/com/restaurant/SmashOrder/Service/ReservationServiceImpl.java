@@ -149,6 +149,11 @@ public class ReservationServiceImpl implements ReservationService {
                 .body("Reservation with ID " + id + " not found");
     }
 
+    @Override
+    public Long countActiveReservationsByCustomer(Long customerId) {
+        return reservationRepository.countActiveReservationsByCustomer(customerId);
+    }
+
     private boolean validateReservationDate(LocalDateTime startDate) {
         return startDate != null && startDate.isAfter(LocalDateTime.now());
     }

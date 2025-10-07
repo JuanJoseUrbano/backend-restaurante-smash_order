@@ -17,5 +17,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice,Long> {
     List<Invoice> findByPaymentDateBetween(LocalDateTime startDate, LocalDateTime endDate);
     List<Invoice> findByPaymentMethod(PaymentMethod paymentMethod);
     Optional<Invoice> findByReceiptNumber(String receiptNumber);
+    List<Invoice> findAllByOrderByPaymentDateDesc();
 
 }

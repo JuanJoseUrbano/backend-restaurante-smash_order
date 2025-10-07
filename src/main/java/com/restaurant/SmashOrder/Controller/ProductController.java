@@ -63,4 +63,8 @@ public class ProductController {
     public ResponseEntity<String> deleteProduct(@PathVariable Long id) {
         return productService.deleteProduct(id);
     }
+    @GetMapping("/count")
+    public ResponseEntity<Long> countAllProducts() {
+        return ResponseEntity.ok( productService.countAllProducts());
+    }
 }

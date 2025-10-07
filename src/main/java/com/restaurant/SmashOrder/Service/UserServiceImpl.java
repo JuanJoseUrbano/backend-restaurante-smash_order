@@ -140,6 +140,11 @@ public class UserServiceImpl implements UserService {
         return ResponseEntity.ok("User deleted successfully");
     }
 
+    @Override
+    public Long countAllUsers() {
+        return userRepository.countBy();
+    }
+
     private String validateUserUniqueness(String username, String email, Long excludeUserId) {
         Optional<User> userByUsername = userRepository.findByUserName(username);
         if (userByUsername.isPresent() &&

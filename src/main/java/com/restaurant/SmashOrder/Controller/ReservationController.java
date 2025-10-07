@@ -64,4 +64,8 @@ public class ReservationController {
     public ResponseEntity<String> delete(@PathVariable Long id) {
         return reservationService.deleteReservation(id);
     }
+    @GetMapping("/active/count/customer/{customerId}")
+    public ResponseEntity<Long> countActiveReservationsByCustomer(@PathVariable Long customerId) {
+        return ResponseEntity.ok(reservationService.countActiveReservationsByCustomer(customerId));
+    }
 }

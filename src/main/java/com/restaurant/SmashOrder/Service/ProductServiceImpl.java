@@ -106,6 +106,11 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findByPriceBetween(minPrice, maxPrice);
     }
 
+    @Override
+    public Long countAllProducts() {
+        return productRepository.countAllProducts();
+    }
+
     private void validateProduct(Product product) {
         if (product.getName() == null || product.getName().trim().isEmpty()) {
             throw new RuntimeException("Product name is required");

@@ -68,4 +68,8 @@ public class UserController {
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         return userService.deleteUser(id);
     }
+    @GetMapping("/count")
+    public ResponseEntity<Long> countAllProducts() {
+        return ResponseEntity.ok( userService.countAllUsers());
+    }
 }

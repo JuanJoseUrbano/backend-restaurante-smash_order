@@ -52,4 +52,8 @@ public class CategoryController {
     public ResponseEntity<String> deleteCategory(@PathVariable Long id) {
         return categoryService.deleteCategory(id);
     }
+    @GetMapping("/count")
+    public ResponseEntity<Long> countAllProducts() {
+        return ResponseEntity.ok(categoryService.countAllCategories());
+    }
 }
