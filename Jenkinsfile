@@ -1,118 +1,162 @@
 pipeline {
     agent any
-    
+
     tools {
-        maven 'Maven 3.9.5'
         jdk 'JDK 21'
     }
-    
+
     environment {
-        DOCKER_IMAGE = 'smashorder-backend'
-        DOCKER_TAG = "${env.BRANCH_NAME}-${BUILD_NUMBER}"
+        JAVA_HOME = tool 'JDK 21'
     }
-    
+
+    // Configurar para ejecutar solo en ramas específicas
+    options {
+        // Mantener solo los últimos 10 builds
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        // Timeout de 30 minutos para el pipeline
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    // Ejecutar solo en las ramas especificadas
+    // Esta sección valida la rama antes de ejecutar cualquier stage
     stages {
+        stage('Validate Branch') {
+            steps {
+                script {
+                    def allowedBranches = ['develop', 'main', 'quality']
+                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('origin/', '')
+                    
+                    echo "Rama actual: ${currentBranch}"
+                    
+                    if (!allowedBranches.contains(currentBranch)) {
+                        error("Pipeline solo se ejecuta en las ramas: ${allowedBranches.join(', ')}. Rama actual: ${currentBranch}")
+                    }
+                    
+                    echo "✓ Rama ${currentBranch} es válida para el pipeline"
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
-                echo 'Cloning repository...'
-                checkout scm
-            }
-        }
-        
-        stage('Build') {
-            steps {
-                echo 'Building the application...'
-                sh 'mvn clean compile'
-            }
-        }
-        
-        stage('Test') {
-            steps {
-                echo 'Running tests...'
-                sh 'mvn test'
-            }
-            post {
-                always {
-                    junit '**/target/surefire-reports/*.xml'
-                }
-            }
-        }
-        
-        stage('Package') {
-            steps {
-                echo 'Packaging the application...'
-                sh 'mvn package -DskipTests'
-            }
-        }
-        
-        stage('Archive Artifacts') {
-            steps {
-                echo 'Archiving artifacts...'
-                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
-            }
-        }
-        
-        stage('Build Docker Image') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    branch 'qa'
-                }
-            }
-            steps {
-                echo "Building Docker image for branch: ${env.BRANCH_NAME}..."
                 script {
-                    def branchTag = env.BRANCH_NAME
-                    sh """
-                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -f Dockerfile.app .
-                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${branchTag}-latest
-                    """
-                    
-                    // Tag as 'latest' only for main branch
-                    if (env.BRANCH_NAME == 'main') {
-                        sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
+                    echo 'Obteniendo código del repositorio...'
+                    checkout scm
+                }
+            }
+        }
+
+        stage('Grant Execute Permission') {
+            steps {
+                script {
+                    echo 'Asegurando permisos de ejecución para mvnw...'
+                    if (isUnix()) {
+                        sh 'chmod +x ./mvnw || true'
+                    } else {
+                        bat 'echo Windows agent: permisos no requeridos'
                     }
                 }
             }
         }
-        
-        stage('Deploy') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    branch 'qa'
+
+        stage('Compile and Package') {
+            steps {
+                script {
+                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('origin/', '')
+                    echo "Compilando y empaquetando la aplicación para la rama: ${currentBranch}..."
+                    
+                    if (isUnix()) {
+                        sh "./mvnw clean package -DskipTests"
+                    } else {
+                        bat '.\\mvnw clean package -DskipTests'
+                    }
                 }
             }
+        }
+
+        stage('Run Tests') {
             steps {
-                echo "Deploying application from branch: ${env.BRANCH_NAME}..."
                 script {
-                    // Different deployment logic based on branch
-                    if (env.BRANCH_NAME == 'main') {
-                        echo 'Deploying to PRODUCTION environment...'
-                        // Add production deployment steps here
-                    } else if (env.BRANCH_NAME == 'qa') {
-                        echo 'Deploying to QA environment...'
-                        // Add QA deployment steps here
-                    } else if (env.BRANCH_NAME == 'develop') {
-                        echo 'Deploying to DEVELOPMENT environment...'
-                        // Add development deployment steps here
+                    echo 'Ejecutando pruebas unitarias...'
+                    if (isUnix()) {
+                        sh "./mvnw test"
+                    } else {
+                        bat '.\\mvnw test'
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('origin/', '')
+                    def imageName = "smash-order-app"
+                    def imageTag = "${currentBranch}-${env.BUILD_NUMBER}"
+                    
+                    echo "Construyendo imagen Docker: ${imageName}:${imageTag}..."
+                    
+                    try {
+                        // Usar Dockerfile.app que tiene multi-stage build
+                        docker.build("${imageName}:${imageTag}", "-f Dockerfile.app .")
+                        
+                        // También etiquetar con el nombre de la rama
+                        docker.build("${imageName}:${currentBranch}", "-f Dockerfile.app .")
+                        
+                        echo "✓ Imagen Docker construida exitosamente: ${imageName}:${imageTag}"
+                    } catch (err) {
+                        echo "✗ Error al construir imagen Docker: ${err}"
+                        currentBuild.result = 'FAILURE'
+                        error("Fallo en la construcción de imagen Docker")
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Info') {
+            steps {
+                script {
+                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('origin/', '')
+                    
+                    echo """
+                    ========================================
+                    BUILD COMPLETADO EXITOSAMENTE
+                    ========================================
+                    Rama: ${currentBranch}
+                    Build: #${env.BUILD_NUMBER}
+                    Imagen Docker: smash-order-app:${currentBranch}-${env.BUILD_NUMBER}
+                    ========================================
+                    """
+                    
+                    // Información específica por rama
+                    switch(currentBranch) {
+                        case 'develop':
+                            echo 'Entorno: DESARROLLO'
+                            echo 'Listo para desplegar en ambiente de desarrollo'
+                            break
+                        case 'quality':
+                            echo 'Entorno: CALIDAD/QA'
+                            echo 'Listo para desplegar en ambiente de pruebas'
+                            break
+                        case 'main':
+                            echo 'Entorno: PRODUCCIÓN'
+                            echo 'Listo para desplegar en ambiente de producción'
+                            break
                     }
                 }
             }
         }
     }
-    
+
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo '✓ Pipeline ejecutado exitosamente'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo '✗ Pipeline falló'
         }
         always {
-            echo 'Cleaning up workspace...'
+            echo 'Limpiando workspace...'
             cleanWs()
         }
     }
