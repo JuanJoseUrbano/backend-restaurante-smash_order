@@ -20,10 +20,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
-    private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
     private final PaymentMethodRepository paymentMethodRepository;
-    private final InvoiceRepository invoiceRepository;
+    private final NotificationRepository notificationRepository;
 
     @Override
     public List<OrderDTO> getAllOrders() {
@@ -148,6 +147,12 @@ public class OrderServiceImpl implements OrderService {
 
             Order savedOrder = orderRepository.save(order);
 
+            Notification notification = new Notification();
+            notification.setType("Nueva orden creada");
+            notification.setMessage("Se ha creado una orden con ID: " + savedOrder.getId() + " por un total de $" + total);
+            notification.setOrder(savedOrder);
+            notificationRepository.save(notification);
+
             return ResponseEntity.ok(
                     "Orden creada con ID: " + savedOrder.getId() +
                             ", total: $" + total +
@@ -172,13 +177,14 @@ public class OrderServiceImpl implements OrderService {
 
             Order existingOrder = existingOrderOpt.get();
 
+            String previousStatus = existingOrder.getStatus();
+
             existingOrder.setCustomer(updatedOrder.getCustomer());
             existingOrder.setTable(updatedOrder.getTable());
             existingOrder.setStatus(updatedOrder.getStatus());
             existingOrder.setDate(LocalDateTime.now());
 
             existingOrder.getOrderDetails().clear();
-
             Map<Long, OrderDetail> combinedDetails = new HashMap<>();
 
             for (OrderDetail detail : updatedOrder.getOrderDetails()) {
@@ -219,9 +225,36 @@ public class OrderServiceImpl implements OrderService {
                         .body("La orden no tiene una factura asociada para actualizar.");
             }
 
-            orderRepository.save(existingOrder);
+            Order savedOrder = orderRepository.save(existingOrder);
 
-            return ResponseEntity.ok("Orden actualizada correctamente con ID: " + existingOrder.getId()
+            Map<String, String> statusNames = Map.of(
+                    "PENDING", "Pendiente",
+                    "IN_PROGRESS", "En proceso",
+                    "COMPLETED", "Completado",
+                    "CANCELLED", "Cancelado"
+            );
+
+            String estadoAnterior = statusNames.getOrDefault(previousStatus, previousStatus != null ? previousStatus : "Desconocido");
+            String estadoNuevo = statusNames.getOrDefault(updatedOrder.getStatus(), updatedOrder.getStatus());
+
+            String mensaje;
+
+            if (!Objects.equals(previousStatus, updatedOrder.getStatus())) {
+                mensaje = "El estado de la orden #" + savedOrder.getId() +
+                        " cambió de " + estadoAnterior + " a " + estadoNuevo +
+                        ". El nuevo total es $" + total + ".";
+            } else {
+                mensaje = "La orden #" + savedOrder.getId() +
+                        " ha sido actualizada. El total recalculado es $" + total + ".";
+            }
+
+            Notification notification = new Notification();
+            notification.setType("Actualización de orden");
+            notification.setMessage(mensaje);
+            notification.setOrder(savedOrder);
+            notificationRepository.save(notification);
+
+            return ResponseEntity.ok("Orden actualizada correctamente con ID: " + savedOrder.getId()
                     + ", nuevo total: $" + total);
 
         } catch (Exception e) {
@@ -230,7 +263,6 @@ public class OrderServiceImpl implements OrderService {
                     .body("Error al actualizar la orden: " + e.getMessage());
         }
     }
-
 
     @Override
     public ResponseEntity<String> deleteOrder(Long id) {
