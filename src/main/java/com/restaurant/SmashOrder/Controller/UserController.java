@@ -49,16 +49,6 @@ public class UserController {
         return userService.searchUserByName(StringUtils.capitalize(name));
     }
 
-    @PostMapping
-    public ResponseEntity<String> registerUser(@RequestBody User user) {
-        return userService.registerUser(user);
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<UserDTO> loginUser(@RequestBody LoginDTO loginDTO) {
-        return userService.loginUser(loginDTO);
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody User user) {
         return userService.updateUser(id, user);

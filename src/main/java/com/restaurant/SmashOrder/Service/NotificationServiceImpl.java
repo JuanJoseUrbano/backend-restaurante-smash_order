@@ -38,7 +38,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public List<NotificationDTO> getNotificationsByCustomer(Long customerId) {
-        return notificationRepository.findByOrderCustomerId(customerId)
+        return notificationRepository.findByOrderCustomerIdOrderByCreatedAtDesc(customerId)
                 .stream()
                 .map(this::mapToNotificationDTO)
                 .toList();

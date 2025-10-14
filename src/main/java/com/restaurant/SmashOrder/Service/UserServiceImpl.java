@@ -1,5 +1,6 @@
 package com.restaurant.SmashOrder.Service;
 
+import com.restaurant.SmashOrder.DTO.JWTAuthResponseDTO;
 import com.restaurant.SmashOrder.DTO.LoginDTO;
 import com.restaurant.SmashOrder.DTO.UserDTO;
 import com.restaurant.SmashOrder.Entity.Role;
@@ -7,9 +8,16 @@ import com.restaurant.SmashOrder.Entity.User;
 import com.restaurant.SmashOrder.Repository.RoleRepository;
 import com.restaurant.SmashOrder.Repository.UserRepository;
 import com.restaurant.SmashOrder.IService.UserService;
+import com.restaurant.SmashOrder.Security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,6 +28,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -40,15 +56,18 @@ public class UserServiceImpl implements UserService {
 
             Set<Role> rolesAsignados = processRoles(user.getRoles());
 
+            String encryptedPassword = passwordEncoder.encode(user.getPassword());
+
             User newUser = User.builder()
                     .userName(user.getUserName())
                     .name(user.getName())
                     .email(user.getEmail())
-                    .password(user.getPassword())
+                    .password(encryptedPassword)
                     .roles(rolesAsignados)
                     .build();
 
             userRepository.save(newUser);
+
             return ResponseEntity.status(HttpStatus.CREATED).body("User created successfully");
 
         } catch (RuntimeException e) {
@@ -56,16 +75,59 @@ public class UserServiceImpl implements UserService {
                     .body("Error creating user: " + e.getMessage());
         }
     }
-
     @Override
-    public ResponseEntity<UserDTO> loginUser(LoginDTO loginDTO) {
-        return userRepository.findByUserNameAndPassword(
-                        loginDTO.getUsuario(),
-                        loginDTO.getPassword()
-                )
-                .map(this::mapToUserDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null));
+    public ResponseEntity<String> updateUser(Long id, User user) {
+        try {
+            Optional<User> existingUserOpt = userRepository.findById(id);
+            if (existingUserOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(USER_NOT_FOUND + id);
+            }
+
+            User existingUser = existingUserOpt.get();
+
+            String validationError = validateUserUniqueness(user.getUserName(), user.getEmail(), id);
+            if (validationError != null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(validationError);
+            }
+
+            Set<Role> rolesAsignados = processRoles(user.getRoles());
+
+            existingUser.setUserName(user.getUserName());
+            existingUser.setName(user.getName());
+            existingUser.setEmail(user.getEmail());
+            existingUser.setRoles(rolesAsignados);
+
+            if (user.getPassword() != null && !user.getPassword().isBlank()) {
+                String encryptedPassword = passwordEncoder.encode(user.getPassword());
+                existingUser.setPassword(encryptedPassword);
+            }
+
+            userRepository.save(existingUser);
+
+            return ResponseEntity.ok("User updated successfully");
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error updating user: " + e.getMessage());
+        }
+    }
+    @Override
+    public ResponseEntity<JWTAuthResponseDTO> authenticateUser(LoginDTO loginDTO) {
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginDTO.getUserName(), loginDTO.getPassword()));
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        String token = jwtTokenProvider.generateToken(authentication);
+
+        User user = userRepository.findByUserName(loginDTO.getUserName()).orElseThrow();
+
+        UserDTO userDTO = mapToUserDTO(user);
+
+        JWTAuthResponseDTO jwtResponse = new JWTAuthResponseDTO();
+        jwtResponse.setAccessToken(token);
+        jwtResponse.setUser(userDTO);
+
+        return ResponseEntity.ok(jwtResponse);
     }
 
     @Override
@@ -94,49 +156,21 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public ResponseEntity<String> updateUser(Long id, User user) {
-        try {
-            Optional<User> existingUserOpt = userRepository.findById(id);
-            if (existingUserOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(USER_NOT_FOUND + id);
-            }
-
-            User existingUser = existingUserOpt.get();
-
-            String validationError = validateUserUniqueness(user.getUserName(), user.getEmail(), id);
-            if (validationError != null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(validationError);
-            }
-
-            // Procesar roles
-            Set<Role> rolesAsignados = processRoles(user.getRoles());
-
-            // Actualizar datos
-            existingUser.setUserName(user.getUserName());
-            existingUser.setName(user.getName());
-            existingUser.setEmail(user.getEmail());
-            existingUser.setRoles(rolesAsignados);
-
-            if (user.getPassword() != null && !user.getPassword().isBlank()) {
-                existingUser.setPassword(user.getPassword());
-            }
-
-            userRepository.save(existingUser);
-            return ResponseEntity.ok("User updated successfully");
-
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Error updating user: " + e.getMessage());
-        }
-    }
 
     @Override
     public ResponseEntity<String> deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(USER_NOT_FOUND + id);
+        Optional<User> userOpt = userRepository.findById(id);
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found: " + id);
         }
+
+        User user = userOpt.get();
+
+        user.getRoles().clear();
+        userRepository.save(user);
+
         userRepository.deleteById(id);
+
         return ResponseEntity.ok("User deleted successfully");
     }
 

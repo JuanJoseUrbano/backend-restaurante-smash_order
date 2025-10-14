@@ -49,7 +49,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderDTO> getOrdersByCustomer(Long customerId) {
-        return orderRepository.findByCustomerId(customerId)
+        return orderRepository.findByCustomerIdOrderByDateDesc(customerId)
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -178,12 +178,15 @@ public class OrderServiceImpl implements OrderService {
             Order existingOrder = existingOrderOpt.get();
 
             String previousStatus = existingOrder.getStatus();
+            BigDecimal previousTotal = existingOrder.getTotal();
 
+            // Actualizar campos básicos
             existingOrder.setCustomer(updatedOrder.getCustomer());
             existingOrder.setTable(updatedOrder.getTable());
             existingOrder.setStatus(updatedOrder.getStatus());
             existingOrder.setDate(LocalDateTime.now());
 
+            // Actualizar detalles de la orden (productos)
             existingOrder.getOrderDetails().clear();
             Map<Long, OrderDetail> combinedDetails = new HashMap<>();
 
@@ -211,15 +214,17 @@ public class OrderServiceImpl implements OrderService {
 
             existingOrder.getOrderDetails().addAll(combinedDetails.values());
 
-            BigDecimal total = existingOrder.getOrderDetails().stream()
+            // Calcular nuevo total
+            BigDecimal newTotal = existingOrder.getOrderDetails().stream()
                     .map(OrderDetail::getSubtotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            existingOrder.setTotal(total);
+            existingOrder.setTotal(newTotal);
 
+            // Actualizar factura
             Invoice existingInvoice = existingOrder.getInvoice();
             if (existingInvoice != null) {
-                existingInvoice.setTotal(total);
+                existingInvoice.setTotal(newTotal);
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("La orden no tiene una factura asociada para actualizar.");
@@ -237,15 +242,22 @@ public class OrderServiceImpl implements OrderService {
             String estadoAnterior = statusNames.getOrDefault(previousStatus, previousStatus != null ? previousStatus : "Desconocido");
             String estadoNuevo = statusNames.getOrDefault(updatedOrder.getStatus(), updatedOrder.getStatus());
 
-            String mensaje;
+            boolean cambioEstado = !Objects.equals(previousStatus, updatedOrder.getStatus());
+            boolean cambioTotal = previousTotal.compareTo(newTotal) != 0;
 
-            if (!Objects.equals(previousStatus, updatedOrder.getStatus())) {
+            String mensaje;
+            if (cambioEstado && !cambioTotal) {
                 mensaje = "El estado de la orden #" + savedOrder.getId() +
-                        " cambió de " + estadoAnterior + " a " + estadoNuevo +
-                        ". El nuevo total es $" + total + ".";
-            } else {
+                        " cambió de " + estadoAnterior + " a " + estadoNuevo + ".";
+            } else if (cambioTotal && !cambioEstado) {
                 mensaje = "La orden #" + savedOrder.getId() +
-                        " ha sido actualizada. El total recalculado es $" + total + ".";
+                        " fue actualizada. Nuevo total: $" + newTotal + ".";
+            } else if (cambioEstado && cambioTotal) {
+                mensaje = "La orden #" + savedOrder.getId() +
+                        " cambió de " + estadoAnterior + " a " + estadoNuevo +
+                        " y su nuevo total es $" + newTotal + ".";
+            } else {
+                mensaje = "La orden #" + savedOrder.getId() + " no presenta cambios significativos.";
             }
 
             Notification notification = new Notification();
@@ -255,7 +267,7 @@ public class OrderServiceImpl implements OrderService {
             notificationRepository.save(notification);
 
             return ResponseEntity.ok("Orden actualizada correctamente con ID: " + savedOrder.getId()
-                    + ", nuevo total: $" + total);
+                    + ", nuevo total: $" + newTotal);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -263,6 +275,7 @@ public class OrderServiceImpl implements OrderService {
                     .body("Error al actualizar la orden: " + e.getMessage());
         }
     }
+
 
     @Override
     public ResponseEntity<String> deleteOrder(Long id) {
