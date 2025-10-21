@@ -4,10 +4,13 @@ import com.restaurant.SmashOrder.DTO.LoginDTO;
 import com.restaurant.SmashOrder.DTO.UserDTO;
 import com.restaurant.SmashOrder.Entity.User;
 import com.restaurant.SmashOrder.IService.UserService;
+import com.restaurant.SmashOrder.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +22,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping
     public List<UserDTO> getAllUsers() {
@@ -34,6 +40,15 @@ public class UserController {
             return ResponseEntity.status(404).body("User not found with id: " + id);
         }
     }
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        Optional<UserDTO> userDTO = userService.getCurrentUser(authentication);
+        if (userDTO.isPresent()) {
+            return ResponseEntity.ok(userDTO.get());
+        } else {
+            return ResponseEntity.status(404).body("User not found");
+        }
+    }
 
     @GetMapping("/email/{email}")
     public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
@@ -41,9 +56,10 @@ public class UserController {
         if (userDTO.isPresent()) {
             return ResponseEntity.ok(userDTO.get());
         } else {
-            return ResponseEntity.status(404).body("User not found with email:  " + email);
+            return ResponseEntity.status(404).body("User not found with email: " + email);
         }
     }
+
     @GetMapping("/search")
     public List<UserDTO> searchUsers(@RequestParam String name) {
         return userService.searchUserByName(StringUtils.capitalize(name));
@@ -53,13 +69,30 @@ public class UserController {
     public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody User user) {
         return userService.updateUser(id, user);
     }
+    @PutMapping("/me")
+    public ResponseEntity<String> updateCurrentUser(Authentication authentication, @RequestBody User user) {
+        try {
+            String username = authentication.getName();
+            Optional<UserDTO> userOpt = userService.findByUserName(username);
 
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Usuario no encontrado");
+            }
+            return userService.updateUser(userOpt.get().getId(), user);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error al actualizar perfil: " + e.getMessage());
+        }
+    }
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         return userService.deleteUser(id);
     }
+
     @GetMapping("/count")
     public ResponseEntity<Long> countAllProducts() {
-        return ResponseEntity.ok( userService.countAllUsers());
+        return ResponseEntity.ok(userService.countAllUsers());
     }
 }

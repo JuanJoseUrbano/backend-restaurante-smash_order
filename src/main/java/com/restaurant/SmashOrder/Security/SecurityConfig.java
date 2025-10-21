@@ -57,8 +57,10 @@ public class SecurityConfig {
                         // ✅ Autenticación pública
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
 
-                        // ✅ Users (solo admin)
+                        // ✅ Users
+                        .requestMatchers("/api/users/me").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
+
 
                         // ✅ Roles
                         .requestMatchers(HttpMethod.GET, "/api/roles/**").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
@@ -129,8 +131,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

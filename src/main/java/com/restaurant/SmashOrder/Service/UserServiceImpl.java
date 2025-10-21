@@ -144,6 +144,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Optional<UserDTO> getCurrentUser(Authentication authentication) {
+        String username = authentication.getName();
+        Optional<User> userOpt = userRepository.findByUserName(username);
+        return userOpt.map(this::mapToUserDTO);
+    }
+
+    @Override
     public Optional<UserDTO> getUserByEmail(String email) {
         return userRepository.findByEmail(email).map(this::mapToUserDTO);
     }
@@ -154,6 +161,12 @@ public class UserServiceImpl implements UserService {
                 .stream()
                 .map(this::mapToUserDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<UserDTO> findByUserName(String userName) {
+        return userRepository.findByUserName(userName)
+                .map(this::mapToUserDTO);
     }
 
 
