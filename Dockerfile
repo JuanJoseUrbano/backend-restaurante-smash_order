@@ -1,14 +1,11 @@
-# Usa una imagen base de OpenJDK 21
+# Usa una imagen base de OpenJDK 21, que coincide con la versión de compilación del proyecto
 FROM openjdk:21-jdk-slim
 
-# Argumento para la ruta del JAR
-ARG JAR_FILE=target/*.jar
+# Establece el directorio de trabajo dentro del contenedor
+WORKDIR /app
 
-# Copia el archivo JAR al contenedor
-COPY ${JAR_FILE} app.jar
+# Copia el archivo JAR compilado desde la carpeta target al contenedor
+COPY target/*.jar app.jar
 
-# Expone el puerto 8080 para que la aplicación sea accesible
-EXPOSE 8080
-
-# Comando para ejecutar la aplicación
-ENTRYPOINT ["java","-jar","/app.jar"]
+# El comando para ejecutar la aplicación. El perfil de Spring se pasará en el `docker run`
+ENTRYPOINT ["java", "-jar", "app.jar"]

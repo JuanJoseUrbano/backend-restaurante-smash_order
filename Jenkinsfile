@@ -59,21 +59,6 @@ pipeline {
             }
         }
 
-        stage('Compile and Package') {
-            steps {
-                script {
-                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('origin/', '')
-                    echo "Compilando y empaquetando la aplicación para la rama: ${currentBranch}..."
-                    
-                    if (isUnix()) {
-                        sh "./mvnw clean package -DskipTests"
-                    } else {
-                        bat '.\\mvnw clean package -DskipTests'
-                    }
-                }
-            }
-        }
-
         stage('Run Tests') {
             steps {
                 script {
@@ -98,10 +83,13 @@ pipeline {
                     
                     try {
                         // Usar Dockerfile.app que tiene multi-stage build
-                        docker.build("${imageName}:${imageTag}", "-f Dockerfile.app .")
-                        
-                        // También etiquetar con el nombre de la rama
-                        docker.build("${imageName}:${currentBranch}", "-f Dockerfile.app .")
+                        if (isUnix()) {
+                            sh "docker build -t ${imageName}:${imageTag} -f Dockerfile.app ."
+                            sh "docker build -t ${imageName}:${currentBranch} -f Dockerfile.app ."
+                        } else {
+                            bat "docker build -t ${imageName}:${imageTag} -f Dockerfile.app ."
+                            bat "docker build -t ${imageName}:${currentBranch} -f Dockerfile.app ."
+                        }
                         
                         echo "✓ Imagen Docker construida exitosamente: ${imageName}:${imageTag}"
                     } catch (err) {
