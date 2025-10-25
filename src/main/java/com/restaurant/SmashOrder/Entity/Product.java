@@ -28,6 +28,9 @@ public class Product {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Column(columnDefinition = "LONGTEXT")
+    private String image;
+
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
