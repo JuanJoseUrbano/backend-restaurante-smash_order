@@ -131,23 +131,24 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public ResponseEntity<String> deleteReservation(Long id) {
         Optional<Reservation> existingReservation = reservationRepository.findById(id);
+
         if (existingReservation.isPresent()) {
             Reservation reservation = existingReservation.get();
-            reservation.setStatus(false);
 
-            // Liberar la mesa
             TableEntity table = tableRepository.findById(reservation.getTable().getId())
                     .orElseThrow(() -> new RuntimeException("Table not found"));
             table.setStatus("AVAILABLE");
             tableRepository.save(table);
 
-            reservationRepository.save(reservation);
-            return ResponseEntity.ok("Reservation cancelled successfully");
+            reservationRepository.delete(reservation);
+
+            return ResponseEntity.ok("Reservation deleted successfully");
         }
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body("Reservation with ID " + id + " not found");
     }
+
 
     @Override
     public Long countActiveReservationsByCustomer(Long customerId) {

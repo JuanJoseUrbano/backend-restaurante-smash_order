@@ -1,9 +1,13 @@
 package com.restaurant.SmashOrder.Entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notifications")
@@ -14,9 +18,6 @@ public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne
-    @JoinColumn(name = "customer_id", nullable = false)
-    private User customer;
 
     @ManyToOne
     @JoinColumn(name = "order_id")
@@ -27,4 +28,8 @@ public class Notification {
 
     @Column(nullable = false)
     private String message;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 }

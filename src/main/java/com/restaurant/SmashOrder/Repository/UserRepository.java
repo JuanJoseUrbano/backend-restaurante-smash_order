@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
-    public Optional<User> findByEmail(String email);
-    public Optional<User> findByUserName(String username);
+    Optional<User> findByEmail(String email);
+    Optional<User> findByUserName(String username);
     @Query("SELECT u FROM User u WHERE u.name LIKE %:name%")
     List<User> searchByName(@Param("name") String name);
 

@@ -59,7 +59,7 @@ public class InvoiceController {
     @GetMapping("/payment-method/{paymentMethodId}")
     public List<InvoiceDTO> getInvoicesByPaymentMethod(@PathVariable Long paymentMethodId) {
         PaymentMethod pm = new PaymentMethod();
-        pm.setId(paymentMethodId);
+        pm .setId(paymentMethodId);
         return invoiceService.getInvoicesByPaymentMethod(pm);
     }
 
