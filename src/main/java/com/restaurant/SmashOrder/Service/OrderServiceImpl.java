@@ -20,10 +20,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
-    private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
     private final PaymentMethodRepository paymentMethodRepository;
-    private final InvoiceRepository invoiceRepository;
+    private final NotificationRepository notificationRepository;
 
     @Override
     public List<OrderDTO> getAllOrders() {
@@ -50,7 +49,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderDTO> getOrdersByCustomer(Long customerId) {
-        return orderRepository.findByCustomerId(customerId)
+        return orderRepository.findByCustomerIdOrderByDateDesc(customerId)
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -148,6 +147,12 @@ public class OrderServiceImpl implements OrderService {
 
             Order savedOrder = orderRepository.save(order);
 
+            Notification notification = new Notification();
+            notification.setType("Nueva orden creada");
+            notification.setMessage("Se ha creado una orden con ID: " + savedOrder.getId() + " por un total de $" + total);
+            notification.setOrder(savedOrder);
+            notificationRepository.save(notification);
+
             return ResponseEntity.ok(
                     "Orden creada con ID: " + savedOrder.getId() +
                             ", total: $" + total +
@@ -172,13 +177,17 @@ public class OrderServiceImpl implements OrderService {
 
             Order existingOrder = existingOrderOpt.get();
 
+            String previousStatus = existingOrder.getStatus();
+            BigDecimal previousTotal = existingOrder.getTotal();
+
+            // Actualizar campos básicos
             existingOrder.setCustomer(updatedOrder.getCustomer());
             existingOrder.setTable(updatedOrder.getTable());
             existingOrder.setStatus(updatedOrder.getStatus());
             existingOrder.setDate(LocalDateTime.now());
 
+            // Actualizar detalles de la orden (productos)
             existingOrder.getOrderDetails().clear();
-
             Map<Long, OrderDetail> combinedDetails = new HashMap<>();
 
             for (OrderDetail detail : updatedOrder.getOrderDetails()) {
@@ -205,24 +214,60 @@ public class OrderServiceImpl implements OrderService {
 
             existingOrder.getOrderDetails().addAll(combinedDetails.values());
 
-            BigDecimal total = existingOrder.getOrderDetails().stream()
+            // Calcular nuevo total
+            BigDecimal newTotal = existingOrder.getOrderDetails().stream()
                     .map(OrderDetail::getSubtotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            existingOrder.setTotal(total);
+            existingOrder.setTotal(newTotal);
 
+            // Actualizar factura
             Invoice existingInvoice = existingOrder.getInvoice();
             if (existingInvoice != null) {
-                existingInvoice.setTotal(total);
+                existingInvoice.setTotal(newTotal);
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("La orden no tiene una factura asociada para actualizar.");
             }
 
-            orderRepository.save(existingOrder);
+            Order savedOrder = orderRepository.save(existingOrder);
 
-            return ResponseEntity.ok("Orden actualizada correctamente con ID: " + existingOrder.getId()
-                    + ", nuevo total: $" + total);
+            Map<String, String> statusNames = Map.of(
+                    "PENDING", "Pendiente",
+                    "IN_PROGRESS", "En proceso",
+                    "COMPLETED", "Completado",
+                    "CANCELLED", "Cancelado"
+            );
+
+            String estadoAnterior = statusNames.getOrDefault(previousStatus, previousStatus != null ? previousStatus : "Desconocido");
+            String estadoNuevo = statusNames.getOrDefault(updatedOrder.getStatus(), updatedOrder.getStatus());
+
+            boolean cambioEstado = !Objects.equals(previousStatus, updatedOrder.getStatus());
+            boolean cambioTotal = previousTotal.compareTo(newTotal) != 0;
+
+            String mensaje;
+            if (cambioEstado && !cambioTotal) {
+                mensaje = "El estado de la orden #" + savedOrder.getId() +
+                        " cambió de " + estadoAnterior + " a " + estadoNuevo + ".";
+            } else if (cambioTotal && !cambioEstado) {
+                mensaje = "La orden #" + savedOrder.getId() +
+                        " fue actualizada. Nuevo total: $" + newTotal + ".";
+            } else if (cambioEstado && cambioTotal) {
+                mensaje = "La orden #" + savedOrder.getId() +
+                        " cambió de " + estadoAnterior + " a " + estadoNuevo +
+                        " y su nuevo total es $" + newTotal + ".";
+            } else {
+                mensaje = "La orden #" + savedOrder.getId() + " no presenta cambios significativos.";
+            }
+
+            Notification notification = new Notification();
+            notification.setType("Actualización de orden");
+            notification.setMessage(mensaje);
+            notification.setOrder(savedOrder);
+            notificationRepository.save(notification);
+
+            return ResponseEntity.ok("Orden actualizada correctamente con ID: " + savedOrder.getId()
+                    + ", nuevo total: $" + newTotal);
 
         } catch (Exception e) {
             e.printStackTrace();
