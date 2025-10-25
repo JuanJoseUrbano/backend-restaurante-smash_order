@@ -23,13 +23,26 @@ pipeline {
         stage('Validate Branch') {
             steps {
                 script {
-                    def allowedBranches = ['develop', 'main', 'quality']
                     def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('origin/', '')
                     
                     echo "Rama actual: ${currentBranch}"
                     
-                    if (!allowedBranches.contains(currentBranch)) {
-                        error("Pipeline solo se ejecuta en las ramas: ${allowedBranches.join(', ')}. Rama actual: ${currentBranch}")
+                    // Ramas base permitidas
+                    def allowedBranches = ['develop', 'main', 'quality']
+                    
+                    // Patrones de ramas permitidas
+                    def allowedPatterns = [
+                        ~/dev\/.*/,      // dev/HU-XXX, dev/feature, etc.
+                        ~/qa\/.*/,       // qa/HU-XXX, qa/test, etc.
+                        ~/release.*/     // release, release.0.0.1, etc.
+                    ]
+                    
+                    // Validar si la rama está permitida
+                    def isAllowed = allowedBranches.contains(currentBranch) || 
+                                   allowedPatterns.any { pattern -> currentBranch ==~ pattern }
+                    
+                    if (!isAllowed) {
+                        error("Pipeline solo se ejecuta en las ramas: ${allowedBranches.join(', ')} o patrones dev/*, qa/*, release*. Rama actual: ${currentBranch}")
                     }
                     
                     echo "✓ Rama ${currentBranch} es válida para el pipeline"
@@ -92,7 +105,7 @@ pipeline {
                 script {
                     def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('origin/', '')
                     def imageName = "smash-order-app"
-                    def imageTag = "${currentBranch}-${env.BUILD_NUMBER}"
+                    def imageTag = "${currentBranch.replace('/', '-')}-${env.BUILD_NUMBER}"
                     
                     echo "Construyendo imagen Docker: ${imageName}:${imageTag}..."
                     
@@ -100,8 +113,8 @@ pipeline {
                         // Usar Dockerfile.app que tiene multi-stage build
                         docker.build("${imageName}:${imageTag}", "-f Dockerfile.app .")
                         
-                        // También etiquetar con el nombre de la rama
-                        docker.build("${imageName}:${currentBranch}", "-f Dockerfile.app .")
+                        // También etiquetar con el nombre de la rama (reemplazar / con -)
+                        docker.build("${imageName}:${currentBranch.replace('/', '-')}", "-f Dockerfile.app .")
                         
                         echo "✓ Imagen Docker construida exitosamente: ${imageName}:${imageTag}"
                     } catch (err) {
@@ -124,24 +137,35 @@ pipeline {
                     ========================================
                     Rama: ${currentBranch}
                     Build: #${env.BUILD_NUMBER}
-                    Imagen Docker: smash-order-app:${currentBranch}-${env.BUILD_NUMBER}
+                    Imagen Docker: smash-order-app:${currentBranch.replace('/', '-')}-${env.BUILD_NUMBER}
                     ========================================
                     """
                     
                     // Información específica por rama
-                    switch(currentBranch) {
-                        case 'develop':
-                            echo 'Entorno: DESARROLLO'
-                            echo 'Listo para desplegar en ambiente de desarrollo'
-                            break
-                        case 'quality':
-                            echo 'Entorno: CALIDAD/QA'
-                            echo 'Listo para desplegar en ambiente de pruebas'
-                            break
-                        case 'main':
-                            echo 'Entorno: PRODUCCIÓN'
-                            echo 'Listo para desplegar en ambiente de producción'
-                            break
+                    if (currentBranch.startsWith('dev/')) {
+                        echo 'Entorno: DESARROLLO (Feature Branch)'
+                        echo 'Rama de desarrollo de feature'
+                    } else if (currentBranch.startsWith('qa/')) {
+                        echo 'Entorno: CALIDAD (QA Branch)'
+                        echo 'Rama de pruebas de feature'
+                    } else if (currentBranch.startsWith('release')) {
+                        echo 'Entorno: PRE-PRODUCCIÓN (Release Branch)'
+                        echo 'Rama de release candidato'
+                    } else {
+                        switch(currentBranch) {
+                            case 'develop':
+                                echo 'Entorno: DESARROLLO'
+                                echo 'Listo para desplegar en ambiente de desarrollo'
+                                break
+                            case 'quality':
+                                echo 'Entorno: CALIDAD/QA'
+                                echo 'Listo para desplegar en ambiente de pruebas'
+                                break
+                            case 'main':
+                                echo 'Entorno: PRODUCCIÓN'
+                                echo 'Listo para desplegar en ambiente de producción'
+                                break
+                        }
                     }
                 }
             }
