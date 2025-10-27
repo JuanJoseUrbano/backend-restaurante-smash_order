@@ -35,6 +35,10 @@ public class NotificationController {
     public List<NotificationDTO> getNotificationsByCustomer(@PathVariable Long customerId) {
         return notificationService.getNotificationsByCustomer(customerId);
     }
+    @GetMapping("/customer/{customerId}/unread")
+    public List<NotificationDTO> getNotificationsUnreadByCustomer(@PathVariable Long customerId) {
+        return notificationService.getNotificationsUnreadByCustomer(customerId);
+    }
 
     @PostMapping
     public ResponseEntity<String> createNotification(@RequestBody Notification notification) {
@@ -45,6 +49,10 @@ public class NotificationController {
     public ResponseEntity<String> updateNotification(@PathVariable Long id,
                                                      @RequestBody Notification notification) {
         return notificationService.updateNotification(id, notification);
+    }
+    @PatchMapping("/customer/{id}/read")
+    public ResponseEntity<?> markAsRead(@PathVariable Long id) {
+        return notificationService.markNotificationAsRead(id);
     }
 
     @DeleteMapping("/{id}")

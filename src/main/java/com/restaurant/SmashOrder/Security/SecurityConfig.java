@@ -106,10 +106,13 @@ public class SecurityConfig {
 
                         // ✅ Notifications
                         .requestMatchers(HttpMethod.GET, "/api/notifications/customer/**").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/notifications/customer/**").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
+
                         .requestMatchers(HttpMethod.GET, "/api/notifications/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.POST, "/api/notifications/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.PUT, "/api/notifications/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.DELETE, "/api/notifications/**").hasAnyRole("ADMIN", "EMPLOYEE")
+
 
                         // ✅ Payment Methods
                         .requestMatchers(HttpMethod.GET, "/api/payment-methods/**").permitAll()
