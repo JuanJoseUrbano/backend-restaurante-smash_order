@@ -11,6 +11,10 @@ import com.restaurant.SmashOrder.IService.UserService;
 import com.restaurant.SmashOrder.Security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -136,6 +140,13 @@ public class UserServiceImpl implements UserService {
                 .stream()
                 .map(this::mapToUserDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<UserDTO> getUsersPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return userRepository.findAll(pageable)
+                .map(this::mapToUserDTO);
     }
 
     @Override

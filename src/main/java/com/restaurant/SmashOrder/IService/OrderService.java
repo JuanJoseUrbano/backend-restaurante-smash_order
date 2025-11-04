@@ -2,6 +2,8 @@
 
     import com.restaurant.SmashOrder.DTO.OrderDTO;
     import com.restaurant.SmashOrder.Entity.Order;
+    import com.restaurant.SmashOrder.Entity.Product;
+    import org.springframework.data.domain.Page;
     import org.springframework.data.repository.query.Param;
     import org.springframework.http.ResponseEntity;
 
@@ -11,6 +13,8 @@
 
     public interface OrderService {
         List<OrderDTO> getAllOrders();
+        Page<OrderDTO> getOrdersPaginated(int page, int size);
+        List<OrderDTO> getOrdersByCustomerName(String name);
         List<OrderDTO> getOrdersWithoutInvoice();
         Optional<OrderDTO> getOrderById(Long id);
         List<OrderDTO> getOrdersByCustomer(Long customerId);

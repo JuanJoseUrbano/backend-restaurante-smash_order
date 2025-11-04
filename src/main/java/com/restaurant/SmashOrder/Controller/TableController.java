@@ -4,6 +4,7 @@ import com.restaurant.SmashOrder.Entity.TableEntity;
 import com.restaurant.SmashOrder.IService.TableService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,6 +40,29 @@ public class TableController {
             return ResponseEntity.ok(table.get());
         } else {
             return ResponseEntity.status(404).body("Table not found with number: " + number);
+        }
+    }
+    @GetMapping("/paginated")
+    public ResponseEntity<Page<TableEntity>> getAllTablesPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        Page<TableEntity> tables = tableService.getAllTablesPaginated(page, size);
+        return ResponseEntity.ok(tables);
+    }
+
+    @GetMapping("/status-paginated/{status}")
+    public ResponseEntity<?> getByStatusPaginated(
+            @PathVariable String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        Page<TableEntity> tables = tableService.getTablesByStatusPaginated(status, page, size);
+
+        if (tables.hasContent()) {
+            return ResponseEntity.ok(tables);
+        } else {
+            return ResponseEntity.status(404).body("No tables found with status: " + status);
         }
     }
 

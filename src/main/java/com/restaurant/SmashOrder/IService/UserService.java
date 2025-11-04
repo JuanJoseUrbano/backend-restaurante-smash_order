@@ -4,6 +4,7 @@ import com.restaurant.SmashOrder.DTO.JWTAuthResponseDTO;
 import com.restaurant.SmashOrder.DTO.LoginDTO;
 import com.restaurant.SmashOrder.DTO.UserDTO;
 import com.restaurant.SmashOrder.Entity.User;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 
@@ -14,6 +15,7 @@ public interface UserService {
     ResponseEntity<String> registerUser(User user);
     ResponseEntity<JWTAuthResponseDTO> authenticateUser( LoginDTO loginDTO);
     List<UserDTO> getAllUsers();
+    Page<UserDTO> getUsersPaginated(int page, int size);
     Optional<UserDTO> getUserById(Long id);
     Optional<UserDTO> getCurrentUser(Authentication authentication);
     Optional<UserDTO> getUserByEmail(String email);

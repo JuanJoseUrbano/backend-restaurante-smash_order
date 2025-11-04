@@ -7,6 +7,10 @@ import com.restaurant.SmashOrder.Repository.*;
 import com.restaurant.SmashOrder.IService.OrderService;
 import com.restaurant.SmashOrder.Utils.PaymentStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,21 @@ public class OrderServiceImpl implements OrderService {
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<OrderDTO> getOrdersPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size,Sort.by("date").descending());
+        return orderRepository.findAll(pageable)
+                .map(this::mapToDTO);
+    }
+
+    @Override
+    public List<OrderDTO> getOrdersByCustomerName(String name) {
+        return orderRepository.findByCustomer_NameContainingIgnoreCase(name)
+                .stream()
+                .map(this::mapToDTO)
+                .toList();
     }
 
 
@@ -65,7 +84,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderDTO> getOrdersByDate(LocalDateTime date) {
-        return orderRepository.findByDate(date)
+        String formattedDate = date.toLocalDate().toString();
+        return orderRepository.findByDate(formattedDate)
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
