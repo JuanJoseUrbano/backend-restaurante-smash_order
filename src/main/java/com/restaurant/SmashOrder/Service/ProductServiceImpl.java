@@ -6,6 +6,10 @@ import com.restaurant.SmashOrder.Repository.CategoryRepository;
 import com.restaurant.SmashOrder.Repository.ProductRepository;
 import com.restaurant.SmashOrder.IService.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -27,18 +31,47 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public Page<Product> getProductsPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        return productRepository.findAll(pageable);
+    }
+
+    @Override
     public Optional<Product> getProductById(Long id) {
         return productRepository.findById(id);
     }
 
     @Override
     public List<Product> getProductsByCategory(Long categoryId) {
-        return productRepository.findByCategoryId(categoryId);
+        return productRepository.findByCategoryId(categoryId, Pageable.unpaged()).getContent();
     }
 
     @Override
     public List<Product> getProductsByName(String name) {
-        return productRepository.findProductsByName(name);
+        return productRepository.findByNameContainingIgnoreCase(name, Pageable.unpaged()).getContent();
+    }
+
+    @Override
+    public List<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
+        return productRepository.findByPriceBetween(minPrice, maxPrice, Pageable.unpaged()).getContent();
+    }
+
+    @Override
+    public Page<Product> getPaginatedProductsByCategory(Long categoryId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+        return productRepository.findByCategoryId(categoryId, pageable);
+    }
+
+    @Override
+    public Page<Product> getPaginatedProductsByName(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+        return productRepository.findByNameContainingIgnoreCase(name, pageable);
+    }
+
+    @Override
+    public Page<Product> getPaginatedProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+        return productRepository.findByPriceBetween(minPrice, maxPrice,pageable);
     }
 
     @Override
@@ -95,16 +128,6 @@ public class ProductServiceImpl implements ProductService {
         }
         productRepository.deleteById(id);
         return ResponseEntity.ok("Product deleted successfully");
-    }
-
-    @Override
-    public boolean existsById(Long id) {
-        return productRepository.existsById(id);
-    }
-
-    @Override
-    public List<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
-        return productRepository.findByPriceBetween(minPrice, maxPrice);
     }
 
     @Override

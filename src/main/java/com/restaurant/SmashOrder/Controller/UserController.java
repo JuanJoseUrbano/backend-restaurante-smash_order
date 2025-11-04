@@ -2,10 +2,12 @@ package com.restaurant.SmashOrder.Controller;
 
 import com.restaurant.SmashOrder.DTO.LoginDTO;
 import com.restaurant.SmashOrder.DTO.UserDTO;
+import com.restaurant.SmashOrder.Entity.Category;
 import com.restaurant.SmashOrder.Entity.User;
 import com.restaurant.SmashOrder.IService.UserService;
 import com.restaurant.SmashOrder.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -23,12 +25,17 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private UserRepository userRepository;
-
     @GetMapping
     public List<UserDTO> getAllUsers() {
         return userService.getAllUsers();
+    }
+    @GetMapping("/paginated")
+        public ResponseEntity<Page<UserDTO>> getCategoriesPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size) {
+
+        Page<UserDTO> usersPaginated = userService.getUsersPaginated(page, size);
+        return ResponseEntity.ok(usersPaginated);
     }
 
     @GetMapping("/{id}")

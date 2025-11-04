@@ -8,6 +8,10 @@ import com.restaurant.SmashOrder.IService.ReservationService;
 import com.restaurant.SmashOrder.Repository.ReservationRepository;
 import com.restaurant.SmashOrder.Repository.TableRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -33,11 +37,17 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public List<ReservationDTO> getActiveReservations() {
-        return reservationRepository.findByStatusIsTrue()
-                .stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public Page<ReservationDTO> getReservationsPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return reservationRepository.findAll(pageable)
+                .map(this::mapToDTO);
+    }
+
+    @Override
+    public Page<ReservationDTO> getReservationsByStatusPaginated(boolean status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return reservationRepository.findByStatus(status, pageable)
+                .map(this::mapToDTO);
     }
 
     @Override
@@ -47,8 +57,9 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public Optional<ReservationDTO> getReservationByDate(LocalDateTime date) {
-        return reservationRepository.findByDate(date)
+    public Page<ReservationDTO> getReservationsByDatePaginated(LocalDateTime date, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return reservationRepository.findByDate(date, pageable)
                 .map(this::mapToDTO);
     }
 

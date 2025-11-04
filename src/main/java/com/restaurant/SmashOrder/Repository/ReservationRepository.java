@@ -1,6 +1,8 @@
 package com.restaurant.SmashOrder.Repository;
 
 import com.restaurant.SmashOrder.Entity.Reservation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,8 +14,8 @@ import java.util.Optional;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation,Long> {
-    List<Reservation> findByStatusIsTrue();
-    Optional<Reservation> findByDate(LocalDateTime startDate);
+    Page<Reservation> findByStatus(boolean status, Pageable pageable);
+    Page<Reservation> findByDate(LocalDateTime startDate,  Pageable pageable);
     @Query("SELECT r FROM Reservation r WHERE r.table.id = :tableId AND r.date = :date AND r.table.status = 'AVAILABLE'")
     List<Reservation> findByTableAndDate(@Param("tableId") Long tableId, @Param("date") LocalDateTime date);
     @Query("SELECT r FROM Reservation r WHERE r.table.id = :tableId AND r.date = :date AND r.id <> :reservationId AND r.status = true")

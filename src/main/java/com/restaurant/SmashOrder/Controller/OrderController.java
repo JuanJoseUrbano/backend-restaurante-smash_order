@@ -2,8 +2,10 @@ package com.restaurant.SmashOrder.Controller;
 
 import com.restaurant.SmashOrder.DTO.OrderDTO;
 import com.restaurant.SmashOrder.Entity.Order;
+import com.restaurant.SmashOrder.Entity.Product;
 import com.restaurant.SmashOrder.IService.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +25,14 @@ public class OrderController {
     public List<OrderDTO> getAllOrders() {
         return orderService.getAllOrders();
     }
+    @GetMapping("/paginated")
+    public ResponseEntity<Page<OrderDTO>> getCategoriesPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size) {
+
+        Page<OrderDTO> orders = orderService.getOrdersPaginated(page, size);
+        return ResponseEntity.ok(orders);
+    }
     @GetMapping("/without-invoice")
     public List<OrderDTO> getOrdersWithoutInvoice() {
         return orderService.getOrdersWithoutInvoice();
@@ -40,14 +50,19 @@ public class OrderController {
     public List<OrderDTO> getOrdersByCustomer(@PathVariable Long customerId) {
         return orderService.getOrdersByCustomer(customerId);
     }
+    @GetMapping("/search-by-customer")
+    public ResponseEntity<List<OrderDTO>> getOrdersByCustomerName(@RequestParam String name) {
+        List<OrderDTO> orders = orderService.getOrdersByCustomerName(name);
+        return ResponseEntity.ok(orders);
+    }
 
     @GetMapping("/status/{status}")
     public List<OrderDTO> getOrdersByStatus(@PathVariable String status) {
         return orderService.getOrdersByStatus(status);
     }
 
-    @GetMapping("/date/{date}")
-    public List<OrderDTO> getOrdersByDate(@PathVariable String date) {
+    @GetMapping("/date")
+    public List<OrderDTO> getOrdersByDate(@RequestParam String date) {
         LocalDateTime parsedDate = LocalDateTime.parse(date);
         return orderService.getOrdersByDate(parsedDate);
     }

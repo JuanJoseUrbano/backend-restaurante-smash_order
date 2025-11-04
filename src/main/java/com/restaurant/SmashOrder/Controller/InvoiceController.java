@@ -6,6 +6,7 @@ import com.restaurant.SmashOrder.Entity.PaymentMethod;
 import com.restaurant.SmashOrder.IService.InvoiceService;
 import com.restaurant.SmashOrder.Utils.PaymentStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,15 @@ public class InvoiceController {
         return invoiceService.getAllInvoices();
     }
 
+    @GetMapping("/paginated")
+    public ResponseEntity<Page<InvoiceDTO>> getInvoicesPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        Page<InvoiceDTO> invoices = invoiceService.getInvoicesPaginated(page, size);
+        return ResponseEntity.ok(invoices);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getInvoiceById(@PathVariable Long id) {
         Optional<InvoiceDTO> invoiceOpt = invoiceService.getInvoiceById(id);
@@ -39,28 +49,39 @@ public class InvoiceController {
         }
     }
 
-    @GetMapping("/customer/{customerId}")
-    public List<InvoiceDTO> getInvoicesByCustomer(@PathVariable Long customerId) {
-        return invoiceService.getInvoicesByCustomerId(customerId);
+    @GetMapping("/customer/{customerId}/paginated")
+    public Page<InvoiceDTO> getInvoicesByCustomerPaginated(
+            @PathVariable Long customerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return invoiceService.getInvoicesByCustomerIdPaginated(customerId, page, size);
     }
 
-    @GetMapping("/status/{status}")
-    public List<InvoiceDTO> getInvoicesByStatus(@PathVariable PaymentStatus status) {
-        return invoiceService.getInvoicesByStatus(status);
+    @GetMapping("/status/{status}/paginated")
+    public Page<InvoiceDTO> getInvoicesByStatusPaginated(
+            @PathVariable PaymentStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return invoiceService.getInvoicesByStatusPaginated(status, page, size);
     }
 
-    @GetMapping("/date-range")
-    public List<InvoiceDTO> getInvoicesByDateRange(
+    @GetMapping("/date-range/paginated")
+    public Page<InvoiceDTO> getInvoicesByDateRangePaginated(
             @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        return invoiceService.getInvoicesByDateRange(start, end);
+            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return invoiceService.getInvoicesByDateRangePaginated(start, end, page, size);
     }
 
-    @GetMapping("/payment-method/{paymentMethodId}")
-    public List<InvoiceDTO> getInvoicesByPaymentMethod(@PathVariable Long paymentMethodId) {
+    @GetMapping("/payment-method/{paymentMethodId}/paginated")
+    public Page<InvoiceDTO> getInvoicesByPaymentMethodPaginated(
+            @PathVariable Long paymentMethodId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         PaymentMethod pm = new PaymentMethod();
-        pm .setId(paymentMethodId);
-        return invoiceService.getInvoicesByPaymentMethod(pm);
+        pm.setId(paymentMethodId);
+        return invoiceService.getInvoicesByPaymentMethodPaginated(pm, page, size);
     }
 
     @GetMapping("/receipt/{receiptNumber}")

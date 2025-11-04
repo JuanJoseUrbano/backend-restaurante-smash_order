@@ -14,6 +14,10 @@
     import com.restaurant.SmashOrder.Repository.PaymentMethodRepository;
     import com.restaurant.SmashOrder.Utils.PaymentStatus;
     import lombok.RequiredArgsConstructor;
+    import org.springframework.data.domain.Page;
+    import org.springframework.data.domain.PageRequest;
+    import org.springframework.data.domain.Pageable;
+    import org.springframework.data.domain.Sort;
     import org.springframework.http.HttpStatus;
     import org.springframework.http.ResponseEntity;
     import org.springframework.stereotype.Service;
@@ -68,6 +72,13 @@
                     .map(this::mapToInvoiceDTO)
                     .toList();
         }
+        @Override
+        public Page<InvoiceDTO> getInvoicesPaginated(int page, int size) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+            return invoiceRepository.findAll(pageable)
+                    .map(this::mapToInvoiceDTO);
+        }
+
 
         @Override
         public Optional<InvoiceDTO> getInvoiceById(Long id) {
@@ -75,43 +86,41 @@
                     .map(this::mapToInvoiceDTO);
         }
 
-        @Override
-        public List<InvoiceDTO> getInvoicesByCustomerId(Long customerId) {
-            return invoiceRepository.findByOrderCustomerId(customerId)
-                    .stream()
-                    .map(this::mapToInvoiceDTO)
-                    .toList();
-        }
-
-        @Override
-        public List<InvoiceDTO> getInvoicesByStatus(PaymentStatus status) {
-            return invoiceRepository.findByStatus(status)
-                    .stream()
-                    .map(this::mapToInvoiceDTO)
-                    .toList();
-        }
-
-        @Override
-        public List<InvoiceDTO> getInvoicesByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
-            return invoiceRepository.findByPaymentDateBetween(startDate, endDate)
-                    .stream()
-                    .map(this::mapToInvoiceDTO)
-                    .toList();
-        }
-
-        @Override
-        public List<InvoiceDTO> getInvoicesByPaymentMethod(PaymentMethod paymentMethod) {
-            return invoiceRepository.findByPaymentMethod(paymentMethod)
-                    .stream()
-                    .map(this::mapToInvoiceDTO)
-                    .toList();
-        }
 
         @Override
         public Optional<InvoiceDTO> getInvoiceByReceiptNumber(String receiptNumber) {
             return invoiceRepository.findByReceiptNumber(receiptNumber)
                     .map(this::mapToInvoiceDTO);
         }
+
+        @Override
+        public Page<InvoiceDTO> getInvoicesByCustomerIdPaginated(Long customerId, int page, int size) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("paymentDate").descending());
+            return invoiceRepository.findByOrderCustomerId(customerId, pageable)
+                    .map(this::mapToInvoiceDTO);
+        }
+
+        @Override
+        public Page<InvoiceDTO> getInvoicesByStatusPaginated(PaymentStatus status, int page, int size) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("paymentDate").descending());
+            return invoiceRepository.findByStatus(status, pageable)
+                    .map(this::mapToInvoiceDTO);
+        }
+
+        @Override
+        public Page<InvoiceDTO> getInvoicesByDateRangePaginated(LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("paymentDate").descending());
+            return invoiceRepository.findByPaymentDateBetween(startDate, endDate, pageable)
+                    .map(this::mapToInvoiceDTO);
+        }
+
+        @Override
+        public Page<InvoiceDTO> getInvoicesByPaymentMethodPaginated(PaymentMethod paymentMethod, int page, int size) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("paymentDate").descending());
+            return invoiceRepository.findByPaymentMethod(paymentMethod, pageable)
+                    .map(this::mapToInvoiceDTO);
+        }
+
         @Override
         public ResponseEntity<String> createInvoice(Invoice invoice) {
             try {
