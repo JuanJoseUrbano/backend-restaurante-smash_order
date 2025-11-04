@@ -1,0 +1,43 @@
+_format_version: "2.1"
+_comment: "Declarative configuration for Smash Order Project"
+
+services:
+# ============================================================================
+# SMASH-ORDER-API SERVICES
+# ============================================================================
+  - name: smash-order-api-main
+    url: http://smash-order-api-main:9000
+    routes:
+      - name: api-main-route
+        strip_path: true
+        paths:
+          - /api
+    plugins: &api_plugins
+      - name: cors
+        config:
+          origins: ["*"] # En producción, deberías restringir esto a tus dominios
+          methods: [GET, POST, PUT, DELETE, PATCH]
+          headers: [Accept, Authorization, Content-Type]
+          credentials: true
+      - name: rate-limiting
+        config:
+          minute: 100
+          policy: local
+
+  - name: smash-order-api-qa
+    url: http://smash-order-api-qa:9001
+    routes:
+      - name: api-qa-route
+        strip_path: true
+        paths:
+          - /qa/api
+    plugins: *api_plugins
+
+  - name: smash-order-api-develop
+    url: http://smash-order-api-develop:9002
+    routes:
+      - name: api-develop-route
+        strip_path: true
+        paths:
+          - /develop/api
+    plugins: *api_plugins
