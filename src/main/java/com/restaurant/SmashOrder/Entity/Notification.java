@@ -29,6 +29,8 @@ public class Notification {
     @Column(nullable = false)
     private String message;
 
+    private boolean read = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

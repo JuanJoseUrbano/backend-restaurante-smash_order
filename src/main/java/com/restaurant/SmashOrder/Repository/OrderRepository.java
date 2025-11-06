@@ -16,10 +16,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Long countAllOrders();
     @Query("SELECT COUNT(o) FROM Order o WHERE o.customer.id = :customerId")
     Long countOrdersByCustomer(@Param("customerId") Long customerId);
-
     List<Order> findByCustomerIdOrderByDateDesc(Long customerId);
-
+    List<Order> findByCustomer_NameContainingIgnoreCase(String name);
     List<Order> findByStatus(String status);
-    List<Order> findByDate(LocalDateTime date);
+    @Query("SELECT o FROM Order o WHERE CAST(o.date AS string) LIKE %:date%")
+    List<Order> findByDate(@Param("date") String date);
+
+
     List<Order> findAllByOrderByDateDesc();
 }

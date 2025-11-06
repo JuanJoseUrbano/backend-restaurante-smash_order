@@ -4,6 +4,11 @@ import com.restaurant.SmashOrder.Entity.Category;
 import com.restaurant.SmashOrder.Repository.CategoryRepository;
 import com.restaurant.SmashOrder.IService.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -22,6 +27,11 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryRepository.findAll();
     }
 
+    @Override
+    public Page<Category> getCategoriesPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        return categoryRepository.findAll(pageable);
+    }
 
     @Override
     public Optional<Category> getCategoryById(Long id) {
@@ -29,9 +39,11 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public List<Category> getCategoriesByName(String name) {
-        return categoryRepository.findByNameContainingIgnoreCase(name);
+    public Page<Category> getCategoriesByName(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        return categoryRepository.findByNameContainingIgnoreCase(name, pageable);
     }
+
 
     @Override
     public ResponseEntity<String> createCategory(Category category) {
@@ -73,11 +85,6 @@ public class CategoryServiceImpl implements CategoryService {
         }
         categoryRepository.deleteById(id);
         return ResponseEntity.ok("Category deleted successfully");
-    }
-
-    @Override
-    public boolean existsById(Long id) {
-        return categoryRepository.existsById(id);
     }
 
     @Override

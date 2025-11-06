@@ -44,6 +44,16 @@ public class NotificationServiceImpl implements NotificationService {
                 .toList();
     }
 
+    @Override
+    public List<NotificationDTO> getNotificationsUnreadByCustomer(Long customerId) {
+        return notificationRepository
+                .findByOrderCustomerIdAndReadIsFalseOrderByCreatedAtDesc(customerId)
+                .stream()
+                .map(this::mapToNotificationDTO)
+                .toList();
+    }
+
+
 
     @Override
     public ResponseEntity<String> createNotification(Notification notification) {
@@ -65,6 +75,17 @@ public class NotificationServiceImpl implements NotificationService {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error creating notification: " + e.getMessage());
         }
+    }
+
+    @Override
+    public ResponseEntity<String> markNotificationAsRead(Long id) {
+        return notificationRepository.findById(id)
+                .map(notif -> {
+                    notif.setRead(true);
+                    notificationRepository.save(notif);
+                    return ResponseEntity.ok("Notificación marcada como leída");
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @Override

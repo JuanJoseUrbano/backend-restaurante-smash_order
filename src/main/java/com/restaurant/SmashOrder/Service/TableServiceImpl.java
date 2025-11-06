@@ -4,6 +4,10 @@ import com.restaurant.SmashOrder.Entity.TableEntity;
 import com.restaurant.SmashOrder.Repository.TableRepository;
 import com.restaurant.SmashOrder.IService.TableService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -18,6 +22,22 @@ public class TableServiceImpl implements TableService {
     public List<TableEntity> getAllTables() {
         return tableRepository.findAll();
     }
+    @Override
+    public Page<TableEntity> getAllTablesPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return tableRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<TableEntity> getTablesByStatusPaginated(String status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return tableRepository.findByStatus(status, pageable);
+    }
+
+    @Override
+    public List<TableEntity> getTablesByStatus(String status) {
+        return tableRepository.findByStatus(status);
+    }
 
     @Override
     public Optional<TableEntity> getTableById(Long id) {
@@ -27,11 +47,6 @@ public class TableServiceImpl implements TableService {
     @Override
     public Optional<TableEntity> getTableByNumber(Integer number) {
         return tableRepository.findByNumber(number);
-    }
-
-    @Override
-    public List<TableEntity> getTablesByStatus(String status) {
-        return tableRepository.findByStatus(status);
     }
 
     @Override

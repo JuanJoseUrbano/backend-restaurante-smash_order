@@ -4,6 +4,7 @@ import com.restaurant.SmashOrder.Entity.Category;
 import com.restaurant.SmashOrder.IService.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,14 @@ public class CategoryController {
     public List<Category> getAllCategories() {
         return categoryService.getAllCategories();
     }
+    @GetMapping("/paginated")
+    public ResponseEntity<Page<Category>> getCategoriesPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size) {
+
+        Page<Category> categories = categoryService.getCategoriesPaginated(page, size);
+        return ResponseEntity.ok(categories);
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getCategoryById(@PathVariable Long id) {
@@ -34,8 +43,11 @@ public class CategoryController {
     }
 
     @GetMapping("/search")
-    public List<Category> getCategoriesByName(@RequestParam String name) {
-        return categoryService.getCategoriesByName(name);
+    public Page<Category> searchCategories(
+            @RequestParam String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return categoryService.getCategoriesByName(name, page, size);
     }
 
     @PostMapping
