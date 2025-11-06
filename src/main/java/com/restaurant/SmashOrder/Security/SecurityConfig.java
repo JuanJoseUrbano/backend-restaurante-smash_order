@@ -54,13 +54,21 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // ✅ Swagger - Acceso público
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/webjars/**"
+                        ).permitAll()
+
                         // ✅ Autenticación pública
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
 
                         // ✅ Users
                         .requestMatchers("/api/users/me").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
-
 
                         // ✅ Roles
                         .requestMatchers(HttpMethod.GET, "/api/roles/**").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
@@ -86,6 +94,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/tables/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.DELETE, "/api/tables/**").hasAnyRole("ADMIN", "EMPLOYEE")
 
+                        // ✅ Orders
                         .requestMatchers(HttpMethod.GET, "/api/orders/customer/**").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
                         .requestMatchers(HttpMethod.GET, "/api/orders/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.POST, "/api/orders/**").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
@@ -137,15 +146,14 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:8081",
-                "http://127.0.0.1:8081",
-                "https://smash-order.com"
+                "http://localhost:8082",
+                "http://localhost:8082/smash-order",
+                "http://localhost:8081"  // Si tienes un frontend
         ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
-
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -153,4 +161,6 @@ public class SecurityConfig {
 
         return source;
     }
+
 }
+

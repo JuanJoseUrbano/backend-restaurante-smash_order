@@ -2,9 +2,9 @@ _format_version: "2.1"
 _comment: "Declarative configuration for Smash Order Project"
 
 services:
-# ============================================================================
-# SMASH-ORDER-API SERVICES
-# ============================================================================
+  # ============================================================================
+  # SMASH-ORDER-API SERVICES
+  # ============================================================================
   - name: smash-order-api-main
     url: http://smash-order-api-main:9000
     routes:
@@ -40,4 +40,17 @@ services:
         strip_path: true
         paths:
           - /develop/api
+    plugins: *api_plugins
+
+  # ============================================================================
+  # USER-SERVICE
+  # ============================================================================
+  - name: smash-order-user-service-develop
+    url: http://smash-order-user-service-develop:8081
+    routes:
+      - name: user-service-develop-route
+        strip_path: true
+        paths:
+          - /develop/api/users
+          - /develop/api/auth # Assuming auth is also handled by user-service
     plugins: *api_plugins

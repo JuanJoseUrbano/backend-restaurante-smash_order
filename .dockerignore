@@ -1,0 +1,11 @@
+# Ignorar dependencias y artefactos innecesarios en el contexto
+target
+*.log
+*.tmp
+.idea
+.vscode
+.git
+.gitignore
+.DS_Store
+node_modules
+.env
