@@ -1,4 +1,3 @@
-version: '3.8'
 
 networks:
   smash-net:
@@ -19,7 +18,7 @@ services:
       dockerfile: ./kong/Dockerfile
     container_name: smash-order-kong
     environment:
-      KONG_DATABASE: 'off'
+      KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
       KONG_MANAGER_LISTEN: 0.0.0.0:8002
@@ -49,7 +48,8 @@ services:
     networks:
       - smash-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U prod_user -d smash_order_restaurant_prod"]
+      test:
+        ["CMD-SHELL", "pg_isready -U prod_user -d smash_order_restaurant_prod"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -91,7 +91,8 @@ services:
     networks:
       - smash-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U quality_user -d smash_order_restaurant_qa"]
+      test:
+        ["CMD-SHELL", "pg_isready -U quality_user -d smash_order_restaurant_qa"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -133,7 +134,8 @@ services:
     networks:
       - smash-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dev_user -d smash_order_restaurant_dev"]
+      test:
+        ["CMD-SHELL", "pg_isready -U dev_user -d smash_order_restaurant_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -154,5 +156,25 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD_DEV}
     ports:
       - "9002:9002"
+    networks:
+      - smash-net
+
+  smash-order-user-service-develop:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: smash-order-user-service-develop
+    profiles: ["develop"]
+    depends_on:
+      db-dev:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-dev:5432/smash_order_restaurant_dev
+      SPRING_DATASOURCE_USERNAME: dev_user
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD_DEV}
+    ports:
+      - "9003:8081"
     networks:
       - smash-net

@@ -1,6 +1,3 @@
-# Dockerfile para la imagen personalizada de Kong
-FROM kong:3.6
+FROM kong:latest
 
-# Copia el archivo de configuración declarativa.
-# Kong lo cargará automáticamente al iniciar.
-COPY kong.yml /usr/local/kong/declarative/
+COPY kong.yml /usr/local/kong/declarative/kong.yml
