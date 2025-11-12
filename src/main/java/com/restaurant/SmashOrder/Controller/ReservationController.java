@@ -31,6 +31,19 @@ public class ReservationController {
         return ResponseEntity.ok(reservationService.getReservationsPaginated(page, size));
     }
 
+    @GetMapping("/history/customer/{customerId}")
+    public ResponseEntity<?> getReservationHistoryByCustomer(@PathVariable Long customerId) {
+        List<ReservationDTO> reservations = reservationService.getOrdersByCustomer(customerId);
+
+        if (reservations.isEmpty()) {
+            return ResponseEntity.status(404)
+                    .body("No reservations found for customer with ID: " + customerId);
+        }
+
+        return ResponseEntity.ok(reservations);
+    }
+
+
     @GetMapping("/date/{date}")
     public ResponseEntity<?> getByDatePaginated(
             @PathVariable String date,

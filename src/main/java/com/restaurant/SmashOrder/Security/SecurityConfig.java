@@ -111,7 +111,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/payment-methods/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.DELETE, "/api/payment-methods/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         // ✅ Reservations
-                        .requestMatchers(HttpMethod.GET, "/api/reservations/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.GET, "/api/reservations/**").hasAnyRole("ADMIN", "EMPLOYEE","CUSTOMER")
                         .requestMatchers(HttpMethod.POST, "/api/reservations/**").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
                         .requestMatchers(HttpMethod.PUT, "/api/reservations/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.DELETE, "/api/reservations/**").hasAnyRole("ADMIN", "EMPLOYEE")

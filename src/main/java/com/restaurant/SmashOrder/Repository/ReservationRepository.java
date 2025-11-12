@@ -16,6 +16,8 @@ import java.util.Optional;
 public interface ReservationRepository extends JpaRepository<Reservation,Long> {
     Page<Reservation> findByStatus(boolean status, Pageable pageable);
     Page<Reservation> findByDate(LocalDateTime startDate,  Pageable pageable);
+    List<Reservation> findByCustomerId(Long customerId);
+
     @Query("SELECT r FROM Reservation r WHERE r.table.id = :tableId AND r.date = :date AND r.table.status = 'AVAILABLE'")
     List<Reservation> findByTableAndDate(@Param("tableId") Long tableId, @Param("date") LocalDateTime date);
     @Query("SELECT r FROM Reservation r WHERE r.table.id = :tableId AND r.date = :date AND r.id <> :reservationId AND r.status = true")

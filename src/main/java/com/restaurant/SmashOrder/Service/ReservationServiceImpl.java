@@ -37,6 +37,15 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    public List<ReservationDTO> getOrdersByCustomer(Long customerId) {
+        return reservationRepository.findByCustomerId(customerId)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
     public Page<ReservationDTO> getReservationsPaginated(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         return reservationRepository.findAll(pageable)

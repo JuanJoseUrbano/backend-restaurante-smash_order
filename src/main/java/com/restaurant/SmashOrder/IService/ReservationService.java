@@ -12,6 +12,7 @@ import java.util.Optional;
 
 public interface ReservationService {
     List<ReservationDTO> getAllReservations();
+    List<ReservationDTO> getOrdersByCustomer(Long customerId);
     Page<ReservationDTO> getReservationsPaginated(int page, int size);
     Page<ReservationDTO> getReservationsByStatusPaginated(boolean status, int page, int size);
     Optional<ReservationDTO> getReservationById(Long id);
